@@ -6,7 +6,7 @@ export const askAIService = async (prompt) => {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "google/gemini-2.0-flash-lite-001",
+        model: "openrouter/free",
         messages: [
           {
             role: "user",
@@ -18,6 +18,8 @@ export const askAIService = async (prompt) => {
         headers: {
           Authorization: `Bearer ${config.openRouterApiKey}`,
           "Content-Type": "application/json",
+          "HTTP-Referer": "http://localhost:5173",
+          "X-Title": "FlowAI Builder",
         },
       }
     );

@@ -1,6 +1,11 @@
 import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
-dotenv.config();
+// FIX: Resolve the .env path relative to this file, so the server can be
+// started from any working directory (not just the backend/ folder).
+const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: join(__dirname, "../../.env") });
 
 export const config = {
   port: process.env.PORT || 5000,
