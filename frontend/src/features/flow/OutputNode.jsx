@@ -1,0 +1,16 @@
+import { Handle, Position } from '@xyflow/react';
+
+export default function OutputNode({ data }) {
+  return (
+    <div style={{ background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '16px', width: '320px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <Handle type="target" position={Position.Left} style={{ left: -4, width: '8px', height: '8px', borderRadius: '50%', border: '2px solid #fff', background: '#9ca3af' }} />
+      <div style={{ marginBottom: '12px', fontSize: '13px', fontWeight: '500', color: '#374151', display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', marginRight: '8px' }} />
+        AI Response
+      </div>
+      <div style={{ background: '#fff', fontSize: '14px', minHeight: '100px', padding: '12px', borderRadius: '4px', border: '1px solid #e5e7eb', whiteSpace: 'pre-wrap', color: data.value ? '#1f2937' : '#9ca3af', lineHeight: '1.5' }}>
+        {data.value ? data.value : "Awaiting execution..."}
+      </div>
+    </div>
+  );
+}
