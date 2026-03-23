@@ -19,35 +19,44 @@ export default function FlowBuilder() {
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [models, setModelsList] = useState([]);
+  const [selectedModel, setSelectedModel] = useState('');
+  const [failedModels, setFailedModels] = useState(new Set());
 
   const nodeTypes = useMemo(() => ({ inputNode: InputNode, outputNode: OutputNode }), []);
 
-  // FIX 1: Wrap initialNodes in useMemo so it's only created once,
-  // keeping the onChange reference stable across renders.
   const initialNodes = useMemo(() => [
     {
       id: 'input',
       type: 'inputNode',
       position: { x: 50, y: 150 },
-      data: { value: '', onChange: () => {} },
+      data: { value: '', onChange: () => { } },
     },
     {
       id: 'output',
       type: 'outputNode',
       position: { x: 450, y: 150 },
-      data: { value: '' },
+      data: { value: '', isLoading: false },
     },
   ], []);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // FIX 2: Use a stable useCallback for onChange so it never goes stale
-  // even as prompt state updates.
+  React.useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const res = await api.get('/models');
+        setModelsList(res.data.data || []);
+      } catch (err) {
+        console.error("Models fetch failed", err);
+      }
+    };
+    fetchModels();
+  }, []);
+
   const handlePromptChange = useCallback((value) => {
     setPrompt(value);
-    // FIX 3: Update node data correctly — always return a NEW object
-    // so React Flow detects the change and re-renders the node.
     setNodes((nds) =>
       nds.map((node) =>
         node.id === 'input'
@@ -57,7 +66,6 @@ export default function FlowBuilder() {
     );
   }, [setNodes]);
 
-  // Inject the stable callback into the input node once on mount
   React.useEffect(() => {
     setNodes((nds) =>
       nds.map((node) =>
@@ -68,16 +76,15 @@ export default function FlowBuilder() {
     );
   }, [handlePromptChange, setNodes]);
 
-  // Sync response text into the output node correctly (new object reference)
   React.useEffect(() => {
     setNodes((nds) =>
       nds.map((node) =>
         node.id === 'output'
-          ? { ...node, data: { ...node.data, value: response } }
+          ? { ...node, data: { ...node.data, value: response, isLoading: isLoading } }
           : node
       )
     );
-  }, [response, setNodes]);
+  }, [response, isLoading, setNodes]);
 
   const onConnect = useCallback(
     (params) => setEdges((eds) => addEdge(params, eds)),
@@ -89,23 +96,28 @@ export default function FlowBuilder() {
       toast.error('Please enter a prompt first!', { style: { fontSize: '14px' } });
       return;
     }
+    const currentModel = selectedModel || null;
     setIsLoading(true);
-    setResponse('Loading...');
+    setResponse('');
     try {
-      const res = await api.post('/ask-ai', { prompt });
+      const res = await api.post('/ask-ai', {
+        prompt,
+        modelId: currentModel
+      });
       setResponse(res.data.data);
-      toast.success('AI generated response!', { style: { fontSize: '14px' } });
     } catch (error) {
-      console.error(error);
-      setResponse('Error generating response.');
-      toast.error('Failed to fetch AI response.', { style: { fontSize: '14px' } });
+      if (currentModel) {
+        setFailedModels((prev) => new Set([...prev, currentModel]));
+      }
+      setResponse('Error: ' + (error.response?.data?.message || 'Failed to fetch AI response.'));
+      toast.error(error.response?.data?.message || 'Failed to fetch AI response.', { style: { fontSize: '14px' } });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSave = async () => {
-    if (!prompt || !response || response === 'Loading...' || response === 'Error generating response.') {
+    if (!prompt || !response || response === 'Loading...' || response.startsWith('Error:')) {
       toast.error('Nothing valid to save!', { style: { fontSize: '14px' } });
       return;
     }
@@ -113,18 +125,41 @@ export default function FlowBuilder() {
       await api.post('/save', { prompt, response });
       toast.success('Saved successfully to MongoDB!', { style: { fontSize: '14px' } });
     } catch (error) {
-      console.error(error);
       toast.error('Failed to save to database.', { style: { fontSize: '14px' } });
     }
   };
 
-  const canSave = response && !isLoading && response !== 'Error generating response.' && response !== 'Loading...';
+  const canSave = response && !isLoading && !response.startsWith('Error:') && response !== 'Loading...';
 
   return (
     <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <header style={{ padding: '16px 32px', background: '#ffffff', color: '#111827', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e5e7eb', zIndex: 10 }}>
-        <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '600', letterSpacing: '-0.02em' }}>FlowAI Builder</h1>
-        <div style={{ display: 'flex', gap: '12px' }}>
+      <header className="app-header" style={{ padding: '12px 32px', background: '#ffffff', color: '#111827', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e5e7eb', zIndex: 10, flexWrap: 'wrap', gap: '16px' }}>
+        <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '600', letterSpacing: '-0.02em' }}>FlowAI</h1>
+
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              fontSize: '13px',
+              borderRadius: '6px',
+              border: '1px solid #d1d5db',
+              background: '#fff',
+              color: '#374151',
+              outline: 'none',
+              cursor: 'pointer',
+              minWidth: '200px'
+            }}
+          >
+            <option value="">Auto Select (Free Models)</option>
+            {models.map((m) => (
+              <option key={m.id} value={m.id} disabled={failedModels.has(m.id)}>
+                {m.name || m.id} {failedModels.has(m.id) ? '(unavailable)' : ''}
+              </option>
+            ))}
+          </select>
+
           <button
             onClick={handleRunFlow}
             disabled={isLoading}
@@ -132,6 +167,7 @@ export default function FlowBuilder() {
           >
             {isLoading ? 'Executing...' : 'Run Flow'}
           </button>
+
           <button
             onClick={handleSave}
             disabled={!canSave}
@@ -155,6 +191,23 @@ export default function FlowBuilder() {
           <Controls style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: 'none', borderRadius: '6px' }} />
         </ReactFlow>
       </main>
+
+      <style>{`
+        @media (max-width: 640px) {
+          .app-header {
+            padding: 12px 16px !important;
+            flex-direction: column;
+            align-items: flex-start !important;
+          }
+          .app-header > div {
+            width: 100%;
+            justify-content: flex-start;
+          }
+          select {
+            width: 100%;
+          }
+        }
+      `}</style>
     </div>
   );
 }
