@@ -1,8 +1,9 @@
 import express from "express";
-import { askAI } from "../controllers/ai.controller.js";
-import { saveResponse } from "../controllers/ai.controller.js";
+import { askAI, saveResponse, getModels } from "../controllers/ai.controller.js";
 
 const router = express.Router();
+
+router.get("/models", getModels);
 
 router.post("/ask-ai", askAI);
 router.post("/save", saveResponse);

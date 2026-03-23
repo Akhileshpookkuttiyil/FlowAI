@@ -1,9 +1,9 @@
-import { askAIService } from "../services/ai.service.js";
+import { askAIService, getFreeModels } from "../services/ai.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { Response } from "../models/response.model.js";
 
 export const askAI = asyncHandler(async (req, res) => {
-  const { prompt } = req.body;
+  const { prompt, modelId } = req.body;
 
   if (!prompt || prompt.trim().length === 0) {
     return res.status(400).json({
@@ -12,11 +12,19 @@ export const askAI = asyncHandler(async (req, res) => {
     });
   }
 
-  const result = await askAIService(prompt);
+  const result = await askAIService(prompt, modelId);
 
   res.status(200).json({
     success: true,
     data: result,
+  });
+});
+
+export const getModels = asyncHandler(async (req, res) => {
+  const models = await getFreeModels();
+  res.status(200).json({
+    success: true,
+    data: models,
   });
 });
 
