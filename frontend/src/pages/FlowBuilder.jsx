@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { Play, Save } from 'lucide-react';
 import {
   ReactFlow,
   Controls,
@@ -134,7 +135,10 @@ export default function FlowBuilder() {
   return (
     <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <header className="app-header" style={{ padding: '12px 32px', background: '#ffffff', color: '#111827', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e5e7eb', zIndex: 10, flexWrap: 'wrap', gap: '16px' }}>
-        <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '600', letterSpacing: '-0.02em' }}>FlowAI</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <img src="/logo.png" alt="FlowAI logo" style={{ height: '32px', width: '32px', objectFit: 'contain' }} />
+          <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '600', letterSpacing: '-0.02em' }}>FlowAI</h1>
+        </div>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <select
@@ -163,16 +167,18 @@ export default function FlowBuilder() {
           <button
             onClick={handleRunFlow}
             disabled={isLoading}
-            style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '500', background: isLoading ? '#f3f4f6' : '#111827', color: isLoading ? '#9ca3af' : '#ffffff', border: '1px solid', borderColor: isLoading ? '#e5e7eb' : '#111827', borderRadius: '6px', cursor: isLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s ease' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: '500', background: isLoading ? '#f3f4f6' : '#111827', color: isLoading ? '#9ca3af' : '#ffffff', border: '1px solid', borderColor: isLoading ? '#e5e7eb' : '#111827', borderRadius: '6px', cursor: isLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s ease' }}
           >
+            <Play size={14} />
             {isLoading ? 'Executing...' : 'Run Flow'}
           </button>
 
           <button
             onClick={handleSave}
             disabled={!canSave}
-            style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '500', background: '#ffffff', color: !canSave ? '#9ca3af' : '#374151', border: '1px solid #d1d5db', borderRadius: '6px', cursor: !canSave ? 'not-allowed' : 'pointer', transition: 'all 0.15s ease', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: '500', background: '#ffffff', color: !canSave ? '#9ca3af' : '#374151', border: '1px solid #d1d5db', borderRadius: '6px', cursor: !canSave ? 'not-allowed' : 'pointer', transition: 'all 0.15s ease', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}
           >
+            <Save size={14} />
             Save Record
           </button>
         </div>
