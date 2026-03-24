@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Play, Save } from 'lucide-react';
 import {
   ReactFlow,
@@ -9,14 +9,17 @@ import {
   addEdge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { motion } from 'framer-motion';
 import { api } from '../api/axiosInstance';
 import { toast } from 'react-hot-toast';
 import InputNode from '../features/flow/InputNode';
 import OutputNode from '../features/flow/OutputNode';
+import CustomModelSelector from '../features/flow/CustomModelSelector';
 
 const initialEdges = [{ id: 'e1-2', source: 'input', target: 'output', animated: true }];
 
-export default function FlowBuilder() {
+function FlowContent() {
+  const MotionButton = motion.button;
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +47,7 @@ export default function FlowBuilder() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchModels = async () => {
       try {
         const res = await api.get('/models');
@@ -60,29 +63,23 @@ export default function FlowBuilder() {
     setPrompt(value);
     setNodes((nds) =>
       nds.map((node) =>
-        node.id === 'input'
-          ? { ...node, data: { ...node.data, value } }
-          : node
+        node.id === 'input' ? { ...node, data: { ...node.data, value } } : node
       )
     );
   }, [setNodes]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setNodes((nds) =>
       nds.map((node) =>
-        node.id === 'input'
-          ? { ...node, data: { ...node.data, onChange: handlePromptChange } }
-          : node
+        node.id === 'input' ? { ...node, data: { ...node.data, onChange: handlePromptChange } } : node
       )
     );
   }, [handlePromptChange, setNodes]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setNodes((nds) =>
       nds.map((node) =>
-        node.id === 'output'
-          ? { ...node, data: { ...node.data, value: response, isLoading: isLoading } }
-          : node
+        node.id === 'output' ? { ...node, data: { ...node.data, value: response, isLoading: isLoading } } : node
       )
     );
   }, [response, isLoading, setNodes]);
@@ -94,24 +91,22 @@ export default function FlowBuilder() {
 
   const handleRunFlow = async () => {
     if (!prompt.trim()) {
-      toast.error('Please enter a prompt first!', { style: { fontSize: '14px' } });
+      toast.error('Please enter a prompt first!', {
+        style: { fontSize: '13px', borderRadius: '10px', background: '#333', color: '#fff' }
+      });
       return;
     }
     const currentModel = selectedModel || null;
     setIsLoading(true);
     setResponse('');
     try {
-      const res = await api.post('/ask-ai', {
-        prompt,
-        modelId: currentModel
-      });
+      const res = await api.post('/ask-ai', { prompt, modelId: currentModel });
       setResponse(res.data.data);
+      toast.success('Response generated successfully!');
     } catch (error) {
-      if (currentModel) {
-        setFailedModels((prev) => new Set([...prev, currentModel]));
-      }
+      if (currentModel) setFailedModels((prev) => new Set([...prev, currentModel]));
       setResponse('Error: ' + (error.response?.data?.message || 'Failed to fetch AI response.'));
-      toast.error(error.response?.data?.message || 'Failed to fetch AI response.', { style: { fontSize: '14px' } });
+      toast.error(error.response?.data?.message || 'Failed to fetch AI response.');
     } finally {
       setIsLoading(false);
     }
@@ -119,14 +114,14 @@ export default function FlowBuilder() {
 
   const handleSave = async () => {
     if (!prompt || !response || response === 'Loading...' || response.startsWith('Error:')) {
-      toast.error('Nothing valid to save!', { style: { fontSize: '14px' } });
+      toast.error('Nothing valid to save!');
       return;
     }
     try {
       await api.post('/save', { prompt, response });
-      toast.success('Saved successfully to MongoDB!', { style: { fontSize: '14px' } });
-    } catch (error) {
-      toast.error('Failed to save to database.', { style: { fontSize: '14px' } });
+      toast.success('Saved to History!');
+    } catch {
+      toast.error('Failed to save to database.');
     }
   };
 
@@ -141,48 +136,41 @@ export default function FlowBuilder() {
         </div>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              fontSize: '13px',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              background: '#fff',
-              color: '#374151',
-              outline: 'none',
-              cursor: 'pointer',
-              minWidth: '200px'
-            }}
-          >
-            <option value="">Auto Select (Free Models)</option>
-            {models.map((m) => (
-              <option key={m.id} value={m.id} disabled={failedModels.has(m.id)}>
-                {m.name || m.id} {failedModels.has(m.id) ? '(unavailable)' : ''}
-              </option>
-            ))}
-          </select>
+          <div className="model-selector-wrap" style={{ minWidth: '200px' }}>
+            <CustomModelSelector
+              models={models}
+              selectedModel={selectedModel}
+              setSelectedModel={setSelectedModel}
+              failedModels={failedModels}
+            />
+          </div>
 
-          <button
-            onClick={handleRunFlow}
-            disabled={isLoading}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: '500', background: isLoading ? '#f3f4f6' : '#111827', color: isLoading ? '#9ca3af' : '#ffffff', border: '1px solid', borderColor: isLoading ? '#e5e7eb' : '#111827', borderRadius: '6px', cursor: isLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s ease' }}
-          >
-            <Play size={14} />
-            {isLoading ? 'Executing...' : 'Run Flow'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <MotionButton
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleRunFlow}
+              disabled={isLoading}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '13px', fontWeight: '600', background: isLoading ? '#f1f5f9' : '#111827', color: isLoading ? '#94a3b8' : '#ffffff', border: 'none', borderRadius: '8px', cursor: isLoading ? 'not-allowed' : 'pointer' }}
+            >
+              <Play size={14} fill="currentColor" />
+              {isLoading ? 'Executing...' : 'Run Flow'}
+            </MotionButton>
 
-          <button
-            onClick={handleSave}
-            disabled={!canSave}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: '500', background: '#ffffff', color: !canSave ? '#9ca3af' : '#374151', border: '1px solid #d1d5db', borderRadius: '6px', cursor: !canSave ? 'not-allowed' : 'pointer', transition: 'all 0.15s ease', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}
-          >
-            <Save size={14} />
-            Save Record
-          </button>
+            <MotionButton
+              whileHover={{ scale: 1.05, background: '#f8fafc' }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleSave}
+              disabled={!canSave}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '13px', fontWeight: '600', background: '#ffffff', color: !canSave ? '#94a3b8' : '#334155', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: !canSave ? 'not-allowed' : 'pointer' }}
+            >
+              <Save size={14} />
+              Save Record
+            </MotionButton>
+          </div>
         </div>
       </header>
+
       <main style={{ flex: 1, position: 'relative', background: '#f9fafb' }}>
         <ReactFlow
           nodes={nodes}
@@ -208,11 +196,15 @@ export default function FlowBuilder() {
             width: 100%;
             justify-content: flex-start;
           }
-          select {
+          .model-selector-wrap {
             width: 100%;
           }
         }
       `}</style>
     </div>
   );
+}
+
+export default function FlowBuilder() {
+  return <FlowContent />;
 }
