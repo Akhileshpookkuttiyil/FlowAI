@@ -30,13 +30,13 @@ export default function FlowBuilder() {
     {
       id: 'input',
       type: 'inputNode',
-      position: { x: 50, y: 150 },
+      position: { x: 200, y: 220 },
       data: { value: '', onChange: () => { } },
     },
     {
       id: 'output',
       type: 'outputNode',
-      position: { x: 450, y: 150 },
+      position: { x: 750, y: 220 },
       data: { value: '', isLoading: false },
     },
   ], []);
@@ -191,7 +191,6 @@ export default function FlowBuilder() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           nodeTypes={nodeTypes}
-          fitView
         >
           <Background color="#e5e7eb" gap={20} size={1.5} />
           <Controls style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: 'none', borderRadius: '6px' }} />
