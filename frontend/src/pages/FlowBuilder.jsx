@@ -42,13 +42,13 @@ function FlowContent() {
       id: 'input',
       type: 'inputNode',
       position: { x: 0, y: 50 },
-      data: { value: '', onChange: () => { } },
+      data: {},
     },
     {
       id: 'output',
       type: 'outputNode',
       position: { x: 700, y: 0 },
-      data: { value: '', isLoading: false },
+      data: {},
     },
   ], []);
 
@@ -69,28 +69,37 @@ function FlowContent() {
 
   const handlePromptChange = useCallback((value) => {
     setPrompt(value);
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === 'input' ? { ...node, data: { ...node.data, value } } : node
-      )
-    );
-  }, [setNodes]);
+  }, []);
 
-  useEffect(() => {
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === 'input' ? { ...node, data: { ...node.data, onChange: handlePromptChange } } : node
-      )
-    );
-  }, [handlePromptChange, setNodes]);
+  const flowNodes = useMemo(
+    () =>
+      nodes.map((node) => {
+        if (node.id === 'input') {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              value: prompt,
+              onChange: handlePromptChange,
+            },
+          };
+        }
 
-  useEffect(() => {
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === 'output' ? { ...node, data: { ...node.data, value: response, isLoading: isLoading } } : node
-      )
-    );
-  }, [response, isLoading, setNodes]);
+        if (node.id === 'output') {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              value: response,
+              isLoading,
+            },
+          };
+        }
+
+        return node;
+      }),
+    [nodes, prompt, response, isLoading, handlePromptChange]
+  );
 
   const onConnect = useCallback(
     (params) => setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } }, eds)),
@@ -228,7 +237,7 @@ function FlowContent() {
 
       <main className="app-main">
         <ReactFlow
-          nodes={nodes}
+          nodes={flowNodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
