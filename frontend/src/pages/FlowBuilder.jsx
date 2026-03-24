@@ -16,7 +16,15 @@ import InputNode from '../features/flow/InputNode';
 import OutputNode from '../features/flow/OutputNode';
 import CustomModelSelector from '../features/flow/CustomModelSelector';
 
-const initialEdges = [{ id: 'e1-2', source: 'input', target: 'output', animated: true }];
+const initialEdges = [
+  {
+    id: 'e1-2',
+    source: 'input',
+    target: 'output',
+    animated: true,
+    style: { stroke: '#3b82f6', strokeWidth: 2 }
+  }
+];
 
 function FlowContent() {
   const MotionButton = motion.button;
@@ -33,13 +41,13 @@ function FlowContent() {
     {
       id: 'input',
       type: 'inputNode',
-      position: { x: 200, y: 220 },
+      position: { x: 0, y: 50 },
       data: { value: '', onChange: () => { } },
     },
     {
       id: 'output',
       type: 'outputNode',
-      position: { x: 750, y: 220 },
+      position: { x: 700, y: 0 },
       data: { value: '', isLoading: false },
     },
   ], []);
@@ -85,9 +93,53 @@ function FlowContent() {
   }, [response, isLoading, setNodes]);
 
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
+    (params) => setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } }, eds)),
     [setEdges]
   );
+
+  const onInit = useCallback((instance) => {
+    const initialNodes = instance.getNodes();
+    const rfContainer = document.querySelector('.react-flow');
+    if (!rfContainer || initialNodes.length === 0) return;
+
+    const container = rfContainer.getBoundingClientRect();
+    const { x: vX, y: vY, zoom } = instance.getViewport();
+
+    // 1. Compute bounding box
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    initialNodes.forEach((node) => {
+      const { x, y } = node.position;
+      // Using known constants instead of measurement for stability during Init
+      const w = 340;
+      const h = 250;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + w);
+      maxY = Math.max(maxY, y + h);
+    });
+
+    const nodesCenterX = (minX + maxX) / 2;
+    const nodesCenterY = (minY + maxY) / 2;
+
+    // 2. Viewport center in canvas space
+    const viewportCenterX = (container.width / 2 - vX) / zoom;
+    const viewportCenterY = (container.height / 2 - vY) / zoom;
+
+    // 3. Offset
+    const offsetX = viewportCenterX - nodesCenterX;
+    const offsetY = viewportCenterY - nodesCenterY;
+
+    // 4. Update positions once
+    setNodes((nds) =>
+      nds.map((node) => ({
+        ...node,
+        position: {
+          x: node.position.x + offsetX,
+          y: node.position.y + offsetY,
+        },
+      }))
+    );
+  }, [setNodes]);
 
   const handleRunFlow = async () => {
     if (!prompt.trim()) {
@@ -128,22 +180,29 @@ function FlowContent() {
   const canSave = response && !isLoading && !response.startsWith('Error:') && response !== 'Loading...';
 
   return (
-    <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <header className="app-header" style={{ padding: '12px 32px', background: '#ffffff', color: '#111827', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e5e7eb', zIndex: 10, flexWrap: 'wrap', gap: '16px' }}>
+    <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc', overflow: 'hidden' }}>
+      <header style={{
+        padding: '12px 32px',
+        background: '#ffffff',
+        borderBottom: '1px solid #e2e8f0',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        zIndex: 100,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <img src="/logo.png" alt="FlowAI logo" style={{ height: '32px', width: '32px', objectFit: 'contain' }} />
-          <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '600', letterSpacing: '-0.02em' }}>FlowAI</h1>
+          <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '600', letterSpacing: '-0.02em', color: '#111827' }}>FlowAI</h1>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div className="model-selector-wrap" style={{ minWidth: '200px' }}>
-            <CustomModelSelector
-              models={models}
-              selectedModel={selectedModel}
-              setSelectedModel={setSelectedModel}
-              failedModels={failedModels}
-            />
-          </div>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <CustomModelSelector
+            models={models}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
+            failedModels={failedModels}
+          />
 
           <div style={{ display: 'flex', gap: '8px' }}>
             <MotionButton
@@ -171,7 +230,7 @@ function FlowContent() {
         </div>
       </header>
 
-      <main style={{ flex: 1, position: 'relative', background: '#f9fafb' }}>
+      <main style={{ flex: 1, position: 'relative' }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -179,26 +238,22 @@ function FlowContent() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           nodeTypes={nodeTypes}
+          onInit={onInit}
+          defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
         >
-          <Background color="#e5e7eb" gap={20} size={1.5} />
-          <Controls style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: 'none', borderRadius: '6px' }} />
+          <Background color="#cbd5e1" gap={24} size={1} variant="dots" />
+          <Controls showInteractive={false} style={{ boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', borderRadius: '10px', background: '#fff' }} />
         </ReactFlow>
       </main>
 
       <style>{`
-        @media (max-width: 640px) {
-          .app-header {
-            padding: 12px 16px !important;
-            flex-direction: column;
-            align-items: flex-start !important;
-          }
-          .app-header > div {
-            width: 100%;
-            justify-content: flex-start;
-          }
-          .model-selector-wrap {
-            width: 100%;
-          }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .react-flow__controls-button { background: #fff !important; transition: all 0.2s ease; }
+        .react-flow__controls-button:hover { background: #f8fafc !important; }
+        .react-flow__attribution { display: none; }
+        @media (max-width: 950px) {
+          header { flex-direction: column; gap: 16px; padding: 16px !important; }
+          header > div { width: 100%; justify-content: space-between; }
         }
       `}</style>
     </div>
