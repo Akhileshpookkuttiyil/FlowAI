@@ -143,9 +143,7 @@ function FlowContent() {
 
   const handleRunFlow = async () => {
     if (!prompt.trim()) {
-      toast.error('Please enter a prompt first!', {
-        style: { fontSize: '13px', borderRadius: '10px', background: '#333', color: '#fff' }
-      });
+      toast.error('Please enter a prompt first!');
       return;
     }
     const currentModel = selectedModel || null;
@@ -177,26 +175,20 @@ function FlowContent() {
     }
   };
 
-  const canSave = response && !isLoading && !response.startsWith('Error:') && response !== 'Loading...';
+  const canSave = Boolean(response && !isLoading && !response.startsWith('Error:') && response !== 'Loading...');
 
   return (
-    <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc', overflow: 'hidden' }}>
-      <header style={{
-        padding: '12px 32px',
-        background: '#ffffff',
-        borderBottom: '1px solid #e2e8f0',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        zIndex: 100,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <img src="/logo.png" alt="FlowAI logo" style={{ height: '32px', width: '32px', objectFit: 'contain' }} />
-          <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '600', letterSpacing: '-0.02em', color: '#111827' }}>FlowAI</h1>
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="app-brand">
+          <img className="app-brand__logo" src="/logo.png" alt="FlowAI logo" />
+          <div>
+            <h1 className="app-brand__title">FlowAI</h1>
+            <p className="app-brand__subtitle">Visual AI workflow studio</p>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <div className="app-toolbar">
           <CustomModelSelector
             models={models}
             selectedModel={selectedModel}
@@ -204,33 +196,37 @@ function FlowContent() {
             failedModels={failedModels}
           />
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="app-toolbar-divider" />
+
+          <div className="app-toolbar-group">
             <MotionButton
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.15 }}
               onClick={handleRunFlow}
               disabled={isLoading}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '13px', fontWeight: '600', background: isLoading ? '#f1f5f9' : '#111827', color: isLoading ? '#94a3b8' : '#ffffff', border: 'none', borderRadius: '8px', cursor: isLoading ? 'not-allowed' : 'pointer' }}
+              className="app-control app-button app-button--primary"
+              type="button"
             >
-              <Play size={14} fill="currentColor" />
+              <Play size={16} />
               {isLoading ? 'Executing...' : 'Run Flow'}
             </MotionButton>
 
             <MotionButton
-              whileHover={{ scale: 1.05, background: '#f8fafc' }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.15 }}
               onClick={handleSave}
               disabled={!canSave}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '13px', fontWeight: '600', background: '#ffffff', color: !canSave ? '#94a3b8' : '#334155', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: !canSave ? 'not-allowed' : 'pointer' }}
+              className="app-control app-button app-button--secondary"
+              type="button"
             >
-              <Save size={14} />
+              <Save size={16} />
               Save Record
             </MotionButton>
           </div>
         </div>
       </header>
 
-      <main style={{ flex: 1, position: 'relative' }}>
+      <main className="app-main">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -242,20 +238,9 @@ function FlowContent() {
           defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
         >
           <Background color="#cbd5e1" gap={24} size={1} variant="dots" />
-          <Controls showInteractive={false} style={{ boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', borderRadius: '10px', background: '#fff' }} />
+          <Controls showInteractive={false} />
         </ReactFlow>
       </main>
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .react-flow__controls-button { background: #fff !important; transition: all 0.2s ease; }
-        .react-flow__controls-button:hover { background: #f8fafc !important; }
-        .react-flow__attribution { display: none; }
-        @media (max-width: 950px) {
-          header { flex-direction: column; gap: 16px; padding: 16px !important; }
-          header > div { width: 100%; justify-content: space-between; }
-        }
-      `}</style>
     </div>
   );
 }
