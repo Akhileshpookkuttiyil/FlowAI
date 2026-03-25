@@ -5,12 +5,32 @@ let cachedModels = null;
 let cacheTime = 0;
 const CACHE_TTL = 300000;
 
+const buildOpenRouterHeaders = () => {
+  if (!config.openRouterApiKey) {
+    throw new Error("OPENROUTER_API_KEY is not configured.");
+  }
+
+  const headers = {
+    Authorization: `Bearer ${config.openRouterApiKey}`,
+    "Content-Type": "application/json",
+    "X-Title": config.openRouterAppName,
+  };
+
+  if (config.openRouterSiteUrl) {
+    headers["HTTP-Referer"] = config.openRouterSiteUrl;
+  }
+
+  return headers;
+};
+
 export const getFreeModels = async () => {
   if (cachedModels && Date.now() - cacheTime < CACHE_TTL) return cachedModels;
 
+  const headers = buildOpenRouterHeaders();
+
   try {
     const res = await axios.get("https://openrouter.ai/api/v1/models", {
-      headers: { Authorization: `Bearer ${config.openRouterApiKey}` },
+      headers,
     });
 
     cachedModels = res.data.data
@@ -36,10 +56,7 @@ export const askAIService = async (prompt, modelId = null) => {
         },
         {
           headers: {
-            Authorization: `Bearer ${config.openRouterApiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost:5173",
-            "X-Title": "FlowAI Builder",
+            ...buildOpenRouterHeaders(),
           },
         }
       );

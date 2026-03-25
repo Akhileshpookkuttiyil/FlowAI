@@ -11,6 +11,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { motion } from 'framer-motion';
 import { api } from '../api/axiosInstance';
+import { getApiErrorMessage } from '../utils/api';
 import { toast } from 'react-hot-toast';
 import InputNode from '../features/flow/InputNode';
 import OutputNode from '../features/flow/OutputNode';
@@ -59,9 +60,11 @@ function FlowContent() {
     const fetchModels = async () => {
       try {
         const res = await api.get('/models');
-        setModelsList(res.data.data || []);
+        setModelsList(res.data.response || []);
       } catch (err) {
-        console.error("Models fetch failed", err);
+        const message = getApiErrorMessage(err, 'Failed to load available models.');
+        console.error('Models fetch failed', err);
+        toast.error(message);
       }
     };
     fetchModels();
@@ -160,12 +163,13 @@ function FlowContent() {
     setResponse('');
     try {
       const res = await api.post('/ask-ai', { prompt, modelId: currentModel });
-      setResponse(res.data.data);
+      setResponse(res.data.response);
       toast.success('Response generated successfully!');
     } catch (error) {
+      const message = getApiErrorMessage(error, 'Failed to fetch AI response.');
       if (currentModel) setFailedModels((prev) => new Set([...prev, currentModel]));
-      setResponse('Error: ' + (error.response?.data?.message || 'Failed to fetch AI response.'));
-      toast.error(error.response?.data?.message || 'Failed to fetch AI response.');
+      setResponse(`Error: ${message}`);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -179,8 +183,8 @@ function FlowContent() {
     try {
       await api.post('/save', { prompt, response });
       toast.success('Saved to History!');
-    } catch {
-      toast.error('Failed to save to database.');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to save to database.'));
     }
   };
 

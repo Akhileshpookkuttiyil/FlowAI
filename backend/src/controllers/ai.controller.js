@@ -8,7 +8,8 @@ export const askAI = asyncHandler(async (req, res) => {
   if (!prompt || prompt.trim().length === 0) {
     return res.status(400).json({
       success: false,
-      message: "Prompt is required",
+      response: null,
+      error: "Prompt is required",
     });
   }
 
@@ -16,7 +17,8 @@ export const askAI = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: result,
+    response: result,
+    error: null,
   });
 });
 
@@ -24,7 +26,8 @@ export const getModels = asyncHandler(async (req, res) => {
   const models = await getFreeModels();
   res.status(200).json({
     success: true,
-    data: models,
+    response: models,
+    error: null,
   });
 });
 
@@ -34,7 +37,8 @@ export const saveResponse = asyncHandler(async (req, res) => {
   if (!prompt || !response) {
     return res.status(400).json({
       success: false,
-      message: "Prompt and response are required",
+      response: null,
+      error: "Prompt and response are required",
     });
   }
 
@@ -45,6 +49,7 @@ export const saveResponse = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    data: saved,
+    response: saved,
+    error: null,
   });
 });

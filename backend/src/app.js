@@ -1,18 +1,24 @@
 import express from "express";
 import cors from "cors";
+import { config } from "./config/env.js";
 import aiRoutes from "./routes/ai.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
 
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "http://localhost:4173",
-  ],
-  methods: ["GET", "POST"],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || config.corsOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Origin not allowed by CORS"));
+    },
+    methods: ["GET", "POST"],
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 

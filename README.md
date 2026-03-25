@@ -88,12 +88,19 @@ Create a `.env` file in the `backend/` directory:
 PORT=5000
 MONGO_URI=your_mongodb_atlas_connection_string
 OPENROUTER_API_KEY=your_openrouter_api_key
+FRONTEND_URL=http://localhost:5173
+OPENROUTER_SITE_URL=http://localhost:5173
+OPENROUTER_APP_NAME=FlowAI Builder
 ```
 
 ### 3. Frontend Setup
 ```bash
 cd frontend
 npm install
+```
+Create a `.env` file in the `frontend/` directory:
+```env
+REACT_APP_API_URL=http://localhost:5000
 ```
 
 ---
@@ -140,12 +147,38 @@ The application will be live at `http://localhost:5173`.
 ## 🛠️ Scripts
 
 ### Backend
+- `npm start`: Starts the production Express server.
 - `npm run dev`: Starts the server using `nodemon` for hot-reloading.
 
 ### Frontend
 - `npm run dev`: Launches the Vite development server.
 - `npm run build`: Generates the production-ready distribution bundle.
 - `npm run lint`: Runs ESLint for code quality checks.
+
+---
+
+## Deployment
+
+### Frontend on Vercel
+1. Import the `frontend/` directory as the Vercel project root.
+2. Set the build command to `npm run build`.
+3. Set the output directory to `dist`.
+4. Add `REACT_APP_API_URL=https://your-render-backend.onrender.com` in Vercel Environment Variables.
+5. Redeploy after saving the environment variable.
+
+### Backend on Render
+1. Create a new Web Service pointing at the `backend/` directory.
+2. Set the start command to `npm start`.
+3. Add environment variables:
+```env
+MONGO_URI=your_mongodb_atlas_connection_string
+OPENROUTER_API_KEY=your_openrouter_api_key
+FRONTEND_URL=https://your-vercel-frontend.vercel.app
+OPENROUTER_SITE_URL=https://your-vercel-frontend.vercel.app
+OPENROUTER_APP_NAME=FlowAI Builder
+PORT=10000
+```
+4. After Vercel gives you the frontend production domain, update `FRONTEND_URL` on Render so CORS allows the deployed app.
 
 ---
 
