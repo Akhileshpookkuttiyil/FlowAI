@@ -196,4 +196,9 @@ This project is licensed under the **MIT License**.
 ---
 
 ## ✨ Developed By
-[Your Name] - [Your Portfolio Site/LinkedIn]
+- **Akhilesh P**
+- **Role:** Software Developer | MERN Stack
+- **Portfolio:** https://akhilesh-dev.vercel.app
+- **LinkedIn:** https://linkedin.com/in/akhilesh-p-dev
+- **GitHub:** https://github.com/Akhileshpookkuttiyil
+- **Email:** akhileshpookkuttiyil@gmail.com
