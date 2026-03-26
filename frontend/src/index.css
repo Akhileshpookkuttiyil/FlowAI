@@ -374,6 +374,13 @@ button {
   color: var(--app-accent);
 }
 
+.flow-node__status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
 .flow-node__field,
 .flow-node__output {
   width: 100%;

@@ -1,6 +1,7 @@
 import { Handle, Position } from '@xyflow/react';
-import { Clock3, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
+import BrainIcon from './BrainIcon';
 
 export default function OutputNode({ data, selected }) {
   const MotionDiv = motion.div;
@@ -30,7 +31,7 @@ export default function OutputNode({ data, selected }) {
 
         {data.isLoading && (
           <div className="flow-node__status">
-            <Clock3 size={12} style={{ animation: 'flowSpin 1.8s linear infinite' }} />
+            <BrainIcon size={14} duration={1.05} isAnimated className="flow-node__status-icon" />
             Thinking...
           </div>
         )}
