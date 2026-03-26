@@ -17,6 +17,24 @@ import InputNode from '../features/flow/InputNode';
 import OutputNode from '../features/flow/OutputNode';
 import CustomModelSelector from '../features/flow/CustomModelSelector';
 
+const MOBILE_BREAKPOINT = 768;
+const DESKTOP_NODE_WIDTH = 340;
+const MOBILE_NODE_WIDTH = 280;
+const NODE_HEIGHT = 188;
+const DESKTOP_MIN_GAP = 120;
+const DESKTOP_MAX_GAP = 320;
+const DESKTOP_GAP_RATIO = 0.16;
+const DESKTOP_PADDING = 24;
+const DESKTOP_OFFSET_X = 42;
+const DESKTOP_OFFSET_Y = 18;
+const DESKTOP_OUTPUT_EXTRA_X = 220;
+const DESKTOP_OUTPUT_Y_OFFSET = -40;
+const MOBILE_SIDE_PADDING = 16;
+const MOBILE_TOP_PADDING = 24;
+const MOBILE_X_OFFSET = 44;
+const MOBILE_NODE_HEIGHT = 188;
+const MOBILE_STACK_GAP = 44;
+
 const initialEdges = [
   {
     id: 'e1-2',
@@ -26,6 +44,49 @@ const initialEdges = [
     style: { stroke: '#3b82f6', strokeWidth: 2 }
   }
 ];
+
+const getViewportSize = () => {
+  if (typeof window === 'undefined') {
+    return { width: 1280, height: 720 };
+  }
+
+  return {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  };
+};
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const getResponsiveNodeLayout = ({ width, height, isMobile }) => {
+  const safeWidth = Math.max(width, 0);
+  const safeHeight = Math.max(height, 0);
+
+  if (isMobile) {
+    const baseInputX = Math.max((safeWidth - MOBILE_NODE_WIDTH) / 2, MOBILE_SIDE_PADDING);
+    const maxMobileX = Math.max(safeWidth - MOBILE_NODE_WIDTH - MOBILE_SIDE_PADDING, MOBILE_SIDE_PADDING);
+    const inputX = clamp(baseInputX + MOBILE_X_OFFSET, MOBILE_SIDE_PADDING, maxMobileX);
+    const inputY = MOBILE_TOP_PADDING;
+
+    return {
+      input: { x: inputX, y: inputY },
+      output: { x: inputX, y: inputY + MOBILE_NODE_HEIGHT + MOBILE_STACK_GAP },
+    };
+  }
+
+  const gap = clamp(safeWidth * DESKTOP_GAP_RATIO, DESKTOP_MIN_GAP, DESKTOP_MAX_GAP);
+  const totalWidth = DESKTOP_NODE_WIDTH * 2 + gap;
+  const startX = Math.max((safeWidth - totalWidth) / 2 + DESKTOP_OFFSET_X, DESKTOP_PADDING);
+  const centeredY = Math.max((safeHeight - NODE_HEIGHT) / 2 + DESKTOP_OFFSET_Y, DESKTOP_PADDING);
+
+  return {
+    input: { x: startX, y: centeredY },
+    output: {
+      x: startX + DESKTOP_NODE_WIDTH + gap + DESKTOP_OUTPUT_EXTRA_X,
+      y: centeredY + DESKTOP_OUTPUT_Y_OFFSET,
+    },
+  };
+};
 
 function FlowContent() {
   const MODEL_FETCH_MAX_ATTEMPTS = 4;
@@ -38,27 +99,43 @@ function FlowContent() {
   const [isModelsLoading, setIsModelsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState('');
   const [failedModels, setFailedModels] = useState(new Set());
+  const [viewportSize, setViewportSize] = useState(getViewportSize);
+  const flowContainerRef = useRef(null);
   const isFetchingModelsRef = useRef(false);
   const shouldRetryModelsRef = useRef(true);
+  const reactFlowInstanceRef = useRef(null);
+  const pendingViewportFrameRef = useRef(null);
+  const lastMobileViewportKeyRef = useRef('');
+  const isMobile = viewportSize.width < MOBILE_BREAKPOINT;
 
   const nodeTypes = useMemo(() => ({ inputNode: InputNode, outputNode: OutputNode }), []);
 
-  const initialNodes = useMemo(() => [
-    {
-      id: 'input',
-      type: 'inputNode',
-      position: { x: 0, y: 50 },
-      data: {},
-    },
-    {
-      id: 'output',
-      type: 'outputNode',
-      position: { x: 700, y: 0 },
-      data: {},
-    },
-  ], []);
+  const initialNodes = useMemo(() => {
+    const initialViewport = getViewportSize();
+    const initialIsMobile = initialViewport.width < MOBILE_BREAKPOINT;
+    const initialLayout = getResponsiveNodeLayout({
+      width: initialViewport.width,
+      height: initialViewport.height,
+      isMobile: initialIsMobile,
+    });
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+    return [
+      {
+        id: 'input',
+        type: 'inputNode',
+        position: initialLayout.input,
+        data: {},
+      },
+      {
+        id: 'output',
+        type: 'outputNode',
+        position: initialLayout.output,
+        data: {},
+      },
+    ];
+  }, []);
+
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   const fetchModels = useCallback(async ({ showErrorToast = true, retryUntilLoaded = false } = {}) => {
@@ -120,20 +197,101 @@ function FlowContent() {
     };
   }, [fetchModels]);
 
+  useEffect(() => {
+    const element = flowContainerRef.current;
+
+    if (!element) {
+      return undefined;
+    }
+
+    let frameId = null;
+
+    const measure = () => {
+      const next = {
+        width: element.clientWidth || 0,
+        height: element.clientHeight || 0,
+      };
+
+      setViewportSize((current) => {
+        if (current.width === next.width && current.height === next.height) {
+          return current;
+        }
+
+        return next;
+      });
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === 'undefined') {
+      const handleResize = () => {
+        if (frameId) {
+          cancelAnimationFrame(frameId);
+        }
+
+        frameId = requestAnimationFrame(measure);
+      };
+
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+        if (frameId) {
+          cancelAnimationFrame(frameId);
+        }
+
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+
+    const observer = new ResizeObserver(() => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+
+      frameId = requestAnimationFrame(measure);
+    });
+
+    observer.observe(element);
+
+    return () => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => () => {
+    if (pendingViewportFrameRef.current) {
+      cancelAnimationFrame(pendingViewportFrameRef.current);
+    }
+  }, []);
+
   const handlePromptChange = useCallback((value) => {
     setPrompt(value);
   }, []);
 
+  const responsiveLayout = useMemo(
+    () => getResponsiveNodeLayout({ width: viewportSize.width, height: viewportSize.height, isMobile }),
+    [isMobile, viewportSize.height, viewportSize.width]
+  );
+
   const flowNodes = useMemo(
     () =>
       nodes.map((node) => {
+        const position = isMobile && responsiveLayout[node.id] ? responsiveLayout[node.id] : node.position;
+        const orientation = isMobile ? 'vertical' : 'horizontal';
+
         if (node.id === 'input') {
           return {
             ...node,
+            position,
             data: {
               ...node.data,
               value: prompt,
               onChange: handlePromptChange,
+              orientation,
             },
           };
         }
@@ -141,17 +299,27 @@ function FlowContent() {
         if (node.id === 'output') {
           return {
             ...node,
+            position,
             data: {
               ...node.data,
               value: response,
               isLoading,
+              orientation,
             },
           };
         }
 
-        return node;
+        return {
+          ...node,
+          position,
+        };
       }),
-    [nodes, prompt, response, isLoading, handlePromptChange]
+    [nodes, prompt, response, isLoading, handlePromptChange, isMobile, responsiveLayout]
+  );
+
+  const mobileViewportNodesKey = useMemo(
+    () => flowNodes.map((node) => `${node.id}:${node.position.x}:${node.position.y}`).join('|'),
+    [flowNodes]
   );
 
   const onConnect = useCallback(
@@ -159,49 +327,75 @@ function FlowContent() {
     [setEdges]
   );
 
-  const onInit = useCallback((instance) => {
-    const initialNodes = instance.getNodes();
-    const rfContainer = document.querySelector('.react-flow');
-    if (!rfContainer || initialNodes.length === 0) return;
+  const handleNodesChange = useCallback(
+    (changes) => {
+      if (!isMobile) {
+        onNodesChange(changes);
+        return;
+      }
 
-    const container = rfContainer.getBoundingClientRect();
-    const { x: vX, y: vY, zoom } = instance.getViewport();
+      onNodesChange(changes.filter((change) => change.type !== 'position'));
+    },
+    [isMobile, onNodesChange]
+  );
 
-    // 1. Compute bounding box
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    initialNodes.forEach((node) => {
-      const { x, y } = node.position;
-      // Using known constants instead of measurement for stability during Init
-      const w = 340;
-      const h = 250;
-      minX = Math.min(minX, x);
-      minY = Math.min(minY, y);
-      maxX = Math.max(maxX, x + w);
-      maxY = Math.max(maxY, y + h);
+  const scheduleMobileFitView = useCallback((instance, viewportKey) => {
+    if (lastMobileViewportKeyRef.current === viewportKey) {
+      return;
+    }
+
+    lastMobileViewportKeyRef.current = viewportKey;
+
+    if (pendingViewportFrameRef.current) {
+      cancelAnimationFrame(pendingViewportFrameRef.current);
+    }
+
+    pendingViewportFrameRef.current = requestAnimationFrame(() => {
+      pendingViewportFrameRef.current = requestAnimationFrame(() => {
+        instance.fitView({
+          padding: 0.25,
+          duration: 300,
+        });
+        pendingViewportFrameRef.current = null;
+      });
     });
+  }, []);
 
-    const nodesCenterX = (minX + maxX) / 2;
-    const nodesCenterY = (minY + maxY) / 2;
+  const onInit = useCallback((instance) => {
+    reactFlowInstanceRef.current = instance;
+  }, []);
 
-    // 2. Viewport center in canvas space
-    const viewportCenterX = (container.width / 2 - vX) / zoom;
-    const viewportCenterY = (container.height / 2 - vY) / zoom;
+  useEffect(() => {
+    if (!isMobile) {
+      lastMobileViewportKeyRef.current = '';
+      return;
+    }
 
-    // 3. Offset
-    const offsetX = viewportCenterX - nodesCenterX;
-    const offsetY = viewportCenterY - nodesCenterY;
+    const instance = reactFlowInstanceRef.current;
 
-    // 4. Update positions once
-    setNodes((nds) =>
-      nds.map((node) => ({
-        ...node,
-        position: {
-          x: node.position.x + offsetX,
-          y: node.position.y + offsetY,
-        },
-      }))
-    );
-  }, [setNodes]);
+    if (!instance || !mobileViewportNodesKey) {
+      return;
+    }
+
+    const viewportKey = [
+      'mobile',
+      viewportSize.width,
+      viewportSize.height,
+      mobileViewportNodesKey,
+      isLoading ? 'loading' : 'idle',
+      response.length,
+    ].join('::');
+
+    scheduleMobileFitView(instance, viewportKey);
+  }, [
+    isLoading,
+    isMobile,
+    mobileViewportNodesKey,
+    response.length,
+    scheduleMobileFitView,
+    viewportSize.height,
+    viewportSize.width,
+  ]);
 
   const handleRunFlow = async () => {
     if (!prompt.trim()) {
@@ -296,16 +490,19 @@ function FlowContent() {
         </div>
       </header>
 
-      <main className="app-main">
+      <main className="app-main" ref={flowContainerRef}>
         <ReactFlow
+          key={isMobile ? 'mobile-flow' : 'desktop-flow'}
           nodes={flowNodes}
           edges={edges}
-          onNodesChange={onNodesChange}
+          onNodesChange={handleNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           nodeTypes={nodeTypes}
           onInit={onInit}
           defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+          minZoom={isMobile ? 0.7 : undefined}
+          maxZoom={isMobile ? 1.5 : undefined}
         >
           <Background color="#cbd5e1" gap={24} size={1} variant="dots" />
           <Controls showInteractive={false} />

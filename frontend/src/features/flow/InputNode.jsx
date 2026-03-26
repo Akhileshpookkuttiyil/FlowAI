@@ -4,6 +4,11 @@ import { motion } from 'framer-motion';
 
 export default function InputNode({ data, selected }) {
   const MotionDiv = motion.div;
+  const isVertical = data.orientation === 'vertical';
+  const handlePosition = isVertical ? Position.Bottom : Position.Right;
+  const handleStyle = isVertical
+    ? { bottom: -8, left: '50%', transform: 'translateX(-50%)' }
+    : { right: -8 };
 
   const onChange = (event) => {
     if (data.onChange) {
@@ -36,9 +41,9 @@ export default function InputNode({ data, selected }) {
 
       <Handle
         type="source"
-        position={Position.Right}
+        position={handlePosition}
         className="flow-node__handle flow-node__handle--input"
-        style={{ right: -8 }}
+        style={handleStyle}
       />
     </MotionDiv>
   );

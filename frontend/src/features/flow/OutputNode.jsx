@@ -6,6 +6,11 @@ import BrainIcon from './BrainIcon';
 export default function OutputNode({ data, selected }) {
   const MotionDiv = motion.div;
   const isEmpty = !data.isLoading && !data.value;
+  const isVertical = data.orientation === 'vertical';
+  const handlePosition = isVertical ? Position.Top : Position.Left;
+  const handleStyle = isVertical
+    ? { top: -8, left: '50%', transform: 'translateX(-50%)' }
+    : { left: -8 };
 
   return (
     <MotionDiv
@@ -16,9 +21,9 @@ export default function OutputNode({ data, selected }) {
     >
       <Handle
         type="target"
-        position={Position.Left}
+        position={handlePosition}
         className="flow-node__handle flow-node__handle--output"
-        style={{ left: -8 }}
+        style={handleStyle}
       />
 
       <div className="flow-node__header">
