@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Play, Save } from 'lucide-react';
 import {
   ReactFlow,
@@ -28,13 +28,18 @@ const initialEdges = [
 ];
 
 function FlowContent() {
+  const MODEL_FETCH_MAX_ATTEMPTS = 4;
+  const MODEL_FETCH_RETRY_DELAY_MS = 1500;
   const MotionButton = motion.button;
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [models, setModelsList] = useState([]);
+  const [isModelsLoading, setIsModelsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState('');
   const [failedModels, setFailedModels] = useState(new Set());
+  const isFetchingModelsRef = useRef(false);
+  const shouldRetryModelsRef = useRef(true);
 
   const nodeTypes = useMemo(() => ({ inputNode: InputNode, outputNode: OutputNode }), []);
 
@@ -56,19 +61,64 @@ function FlowContent() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  useEffect(() => {
-    const fetchModels = async () => {
-      try {
-        const res = await api.get('/models');
-        setModelsList(res.data.response || []);
-      } catch (err) {
-        const message = getApiErrorMessage(err, 'Failed to load available models.');
-        console.error('Models fetch failed', err);
+  const fetchModels = useCallback(async ({ showErrorToast = true, retryUntilLoaded = false } = {}) => {
+    if (isFetchingModelsRef.current) {
+      return;
+    }
+
+    isFetchingModelsRef.current = true;
+    setIsModelsLoading(true);
+
+    try {
+      let loadedModels = [];
+      let lastError = null;
+
+      for (let attempt = 1; attempt <= MODEL_FETCH_MAX_ATTEMPTS; attempt += 1) {
+        try {
+          const res = await api.get('/models');
+          loadedModels = res.data.response || [];
+
+          if (loadedModels.length > 0 || !retryUntilLoaded || !shouldRetryModelsRef.current) {
+            break;
+          }
+        } catch (err) {
+          lastError = err;
+
+          if (!retryUntilLoaded || attempt === MODEL_FETCH_MAX_ATTEMPTS || !shouldRetryModelsRef.current) {
+            throw err;
+          }
+        }
+
+        if (attempt < MODEL_FETCH_MAX_ATTEMPTS && shouldRetryModelsRef.current) {
+          await new Promise((resolve) => setTimeout(resolve, MODEL_FETCH_RETRY_DELAY_MS));
+        }
+      }
+
+      if (loadedModels.length === 0 && lastError) {
+        throw lastError;
+      }
+
+      setModelsList(loadedModels);
+    } catch (err) {
+      const message = getApiErrorMessage(err, 'Failed to load available models.');
+      console.error('Models fetch failed', err);
+
+      if (showErrorToast) {
         toast.error(message);
       }
+    } finally {
+      isFetchingModelsRef.current = false;
+      setIsModelsLoading(false);
+    }
+  }, [MODEL_FETCH_MAX_ATTEMPTS, MODEL_FETCH_RETRY_DELAY_MS]);
+
+  useEffect(() => {
+    fetchModels({ retryUntilLoaded: true });
+
+    return () => {
+      shouldRetryModelsRef.current = false;
     };
-    fetchModels();
-  }, []);
+  }, [fetchModels]);
 
   const handlePromptChange = useCallback((value) => {
     setPrompt(value);
@@ -164,6 +214,11 @@ function FlowContent() {
     try {
       const res = await api.post('/ask-ai', { prompt, modelId: currentModel });
       setResponse(res.data.response);
+
+      if (models.length === 0) {
+        fetchModels({ showErrorToast: false, retryUntilLoaded: true });
+      }
+
       toast.success('Response generated successfully!');
     } catch (error) {
       const message = getApiErrorMessage(error, 'Failed to fetch AI response.');
@@ -204,9 +259,11 @@ function FlowContent() {
         <div className="app-toolbar">
           <CustomModelSelector
             models={models}
+            isModelsLoading={isModelsLoading}
             selectedModel={selectedModel}
             setSelectedModel={setSelectedModel}
             failedModels={failedModels}
+            onRefreshModels={fetchModels}
           />
 
           <div className="app-toolbar-divider" />

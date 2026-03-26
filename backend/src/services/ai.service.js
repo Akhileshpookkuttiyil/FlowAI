@@ -4,6 +4,10 @@ import { config } from "../config/env.js";
 let cachedModels = null;
 let cacheTime = 0;
 const CACHE_TTL = 300000;
+const MODEL_FETCH_RETRIES = 3;
+const MODEL_FETCH_RETRY_DELAY_MS = 1200;
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const buildOpenRouterHeaders = () => {
   if (!config.openRouterApiKey) {
@@ -28,19 +32,40 @@ export const getFreeModels = async () => {
 
   const headers = buildOpenRouterHeaders();
 
-  try {
-    const res = await axios.get("https://openrouter.ai/api/v1/models", {
-      headers,
-    });
+  let lastError = null;
 
-    cachedModels = res.data.data
-      .filter((m) => m.pricing?.prompt === "0" || m.id.endsWith(":free"))
-      .map((m) => ({ id: m.id, name: m.name }));
-    cacheTime = Date.now();
-    return cachedModels;
-  } catch (error) {
-    return [];
+  for (let attempt = 1; attempt <= MODEL_FETCH_RETRIES; attempt += 1) {
+    try {
+      const res = await axios.get("https://openrouter.ai/api/v1/models", {
+        headers,
+        timeout: 15000,
+      });
+
+      const models = res.data.data
+        .filter((m) => m.pricing?.prompt === "0" || m.id.endsWith(":free"))
+        .map((m) => ({ id: m.id, name: m.name }));
+
+      if (models.length === 0) {
+        throw new Error("No free models returned from OpenRouter.");
+      }
+
+      cachedModels = models;
+      cacheTime = Date.now();
+      return cachedModels;
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < MODEL_FETCH_RETRIES) {
+        await wait(MODEL_FETCH_RETRY_DELAY_MS);
+      }
+    }
   }
+
+  throw new Error(
+    lastError?.response?.data?.error?.message ||
+      lastError?.message ||
+      "Failed to load available models."
+  );
 };
 
 export const askAIService = async (prompt, modelId = null) => {

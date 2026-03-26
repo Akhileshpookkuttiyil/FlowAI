@@ -2,7 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Check, Sparkles, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
-export default function CustomModelSelector({ models, selectedModel, setSelectedModel, failedModels }) {
+export default function CustomModelSelector({
+  models,
+  isModelsLoading,
+  selectedModel,
+  setSelectedModel,
+  failedModels,
+  onRefreshModels,
+}) {
   const MotionButton = motion.button;
   const MotionDiv = motion.div;
   const [isOpen, setIsOpen] = useState(false);
@@ -24,13 +31,25 @@ export default function CustomModelSelector({ models, selectedModel, setSelected
     id: '',
   };
 
+  const handleToggle = () => {
+    setIsOpen((current) => {
+      const next = !current;
+
+      if (next && models.length === 0 && onRefreshModels) {
+        onRefreshModels({ showErrorToast: false });
+      }
+
+      return next;
+    });
+  };
+
   return (
     <div ref={dropdownRef} className="model-select">
       <MotionButton
         type="button"
         whileTap={{ scale: 0.98 }}
         transition={{ duration: 0.15 }}
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={handleToggle}
         className="app-control app-button model-select__trigger"
         aria-expanded={isOpen}
       >
@@ -65,6 +84,22 @@ export default function CustomModelSelector({ models, selectedModel, setSelected
                 <span>Auto Select (Free Models)</span>
                 {!selectedModel && <Check size={14} />}
               </button>
+
+              {isModelsLoading && models.length === 0 && (
+                <div className="model-select__option model-select__option--status">
+                  <span>Loading available models...</span>
+                </div>
+              )}
+
+              {!isModelsLoading && models.length === 0 && (
+                <button
+                  type="button"
+                  onClick={() => onRefreshModels?.()}
+                  className="model-select__option model-select__option--status"
+                >
+                  <span>No models loaded yet. Retry</span>
+                </button>
+              )}
 
               {models.map((model) => {
                 const isSelected = selectedModel === model.id;
