@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    envPrefix: ['VITE_', 'REACT_APP_'],
     server: {
       proxy: {
         '/api': {
