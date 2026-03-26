@@ -352,10 +352,21 @@ function FlowContent() {
 
     pendingViewportFrameRef.current = requestAnimationFrame(() => {
       pendingViewportFrameRef.current = requestAnimationFrame(() => {
-        instance.fitView({
-          padding: 0.25,
-          duration: 300,
-        });
+        // Guard against stale instances during rapid viewport/layout updates.
+        if (reactFlowInstanceRef.current !== instance) {
+          pendingViewportFrameRef.current = null;
+          return;
+        }
+
+        try {
+          instance.fitView({
+            padding: 0.25,
+            duration: 300,
+          });
+        } catch (error) {
+          console.error('fitView failed', error);
+        }
+
         pendingViewportFrameRef.current = null;
       });
     });
@@ -368,6 +379,12 @@ function FlowContent() {
   useEffect(() => {
     if (!isMobile) {
       lastMobileViewportKeyRef.current = '';
+
+      if (pendingViewportFrameRef.current) {
+        cancelAnimationFrame(pendingViewportFrameRef.current);
+        pendingViewportFrameRef.current = null;
+      }
+
       return;
     }
 
@@ -492,7 +509,6 @@ function FlowContent() {
 
       <main className="app-main" ref={flowContainerRef}>
         <ReactFlow
-          key={isMobile ? 'mobile-flow' : 'desktop-flow'}
           nodes={flowNodes}
           edges={edges}
           onNodesChange={handleNodesChange}
