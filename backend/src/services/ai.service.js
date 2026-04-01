@@ -1,97 +1,104 @@
 import axios from "axios";
 import { config } from "../config/env.js";
 
+const MODEL_CACHE_TTL = 3600000;
 let cachedModels = null;
-let cacheTime = 0;
-const CACHE_TTL = 300000;
-const MODEL_FETCH_RETRIES = 3;
-const MODEL_FETCH_RETRY_DELAY_MS = 1200;
+let lastFetchTime = 0;
 
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// Primary stable models to use as defaults/routers
+const DEFAULT_MODELS = [
+  "openrouter/free"
+];
 
-const buildOpenRouterHeaders = () => {
+const buildHeaders = () => {
   if (!config.openRouterApiKey) {
-    throw new Error("OPENROUTER_API_KEY is not configured.");
+    throw new Error("API Key missing. Please check your environment configuration.");
   }
-
-  const headers = {
+  return {
     Authorization: `Bearer ${config.openRouterApiKey}`,
     "Content-Type": "application/json",
-    "X-Title": config.openRouterAppName,
+    "X-Title": "FlowAI Professional",
+    "HTTP-Referer": config.openRouterSiteUrl || "http://localhost:5173",
   };
-
-  if (config.openRouterSiteUrl) {
-    headers["HTTP-Referer"] = config.openRouterSiteUrl;
-  }
-
-  return headers;
 };
 
-export const getFreeModels = async () => {
-  if (cachedModels && Date.now() - cacheTime < CACHE_TTL) return cachedModels;
+export const getAvailableModels = async () => {
+  if (cachedModels && Date.now() - lastFetchTime < MODEL_CACHE_TTL) {
+    return cachedModels;
+  }
 
-  const headers = buildOpenRouterHeaders();
+  try {
+    const res = await axios.get("https://openrouter.ai/api/v1/models", {
+      headers: buildHeaders(),
+      timeout: 10000,
+    });
 
-  let lastError = null;
+    const models = res.data.data
+      .filter((m) => {
+        const isFree = m.id.endsWith(":free") || m.pricing?.prompt === "0";
+        // Google Lyria yields 402; heavy Llama 3 models often yield 429
+        const isReliable = !m.id.includes("lyria") && !m.id.includes("llama-3.1-405b") && !m.id.includes("llama-3.3-70b");
+        return isFree && isReliable;
+      })
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+        isDefault: DEFAULT_MODELS.includes(m.id),
+      }))
+      .sort((a, b) => {
+        if (a.id === "openrouter/free") return -1;
+        if (b.id === "openrouter/free") return 1;
 
-  for (let attempt = 1; attempt <= MODEL_FETCH_RETRIES; attempt += 1) {
-    try {
-      const res = await axios.get("https://openrouter.ai/api/v1/models", {
-        headers,
-        timeout: 15000,
+        // Then prioritize Google Gemma 3 as they are stable
+        if (a.id.includes("google/gemma-3") && !b.id.includes("google/gemma-3")) return -1;
+        if (!a.id.includes("google/gemma-3") && b.id.includes("google/gemma-3")) return 1;
+        
+        return (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0);
       });
 
-      const models = res.data.data
-        .filter((m) => m.pricing?.prompt === "0" || m.id.endsWith(":free"))
-        .map((m) => ({ id: m.id, name: m.name }));
-
-      if (models.length === 0) {
-        throw new Error("No free models returned from OpenRouter.");
-      }
-
-      cachedModels = models;
-      cacheTime = Date.now();
-      return cachedModels;
-    } catch (error) {
-      lastError = error;
-
-      if (attempt < MODEL_FETCH_RETRIES) {
-        await wait(MODEL_FETCH_RETRY_DELAY_MS);
-      }
-    }
+    cachedModels = models;
+    lastFetchTime = Date.now();
+    return models;
+  } catch (error) {
+    console.error("Model Fetch Error:", error.message);
+    return DEFAULT_MODELS.map(id => ({ id, name: id.split('/')[1] || id, isDefault: true }));
   }
-
-  throw new Error(
-    lastError?.response?.data?.error?.message ||
-      lastError?.message ||
-      "Failed to load available models."
-  );
 };
 
+const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
 export const askAIService = async (prompt, modelId = null) => {
-  const models = modelId ? [{ id: modelId }] : await getFreeModels();
+  const availableModels = await getAvailableModels();
+  const targetModels = modelId ? [modelId] : availableModels.map(m => m.id);
   
-  for (const model of models) {
+  let lastAppError = null;
+
+  for (const model of targetModels) {
     try {
       const response = await axios.post(
         "https://openrouter.ai/api/v1/chat/completions",
         {
-          model: model.id,
+          model: model,
           messages: [{ role: "user", content: prompt }],
+          temperature: 0.7,
+          stream: true,
         },
         {
-          headers: {
-            ...buildOpenRouterHeaders(),
-          },
+          headers: buildHeaders(),
+          responseType: "stream",
+          timeout: 45000,
         }
       );
-      return response.data.choices[0].message.content;
+
+      return response.data;
     } catch (error) {
-      if (modelId) {
-        throw new Error(error.response?.data?.error?.message || "Model currently unavailable.");
-      }
+      lastAppError = error;
+      if (modelId) break; 
+      console.warn(`Model ${model} failed (${error.message}). Falling back...`);
+      await delay(1000);
     }
   }
 
-  throw new Error(modelId ? "Selected model is currently unavailable." : "All free model attempts failed. Please try again later.");
+  const errorDetail = lastAppError?.response?.data?.error?.message || lastAppError?.message;
+  throw new Error(errorDetail || "AI Service unavailable across all free models.");
 };

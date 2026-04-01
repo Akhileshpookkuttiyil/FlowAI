@@ -1,29 +1,30 @@
-import { askAIService, getFreeModels } from "../services/ai.service.js";
+import { askAIService, getAvailableModels } from "../services/ai.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { Response } from "../models/response.model.js";
 
 export const askAI = asyncHandler(async (req, res) => {
   const { prompt, modelId } = req.body;
 
-  if (!prompt || prompt.trim().length === 0) {
-    return res.status(400).json({
+  try {
+    const stream = await askAIService(prompt, modelId);
+
+    // Set headers for Server-Sent Events (Streaming)
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    stream.pipe(res);
+  } catch (error) {
+    res.status(500).json({
       success: false,
       response: null,
-      error: "Prompt is required",
+      error: error.message || "Failed to start AI stream",
     });
   }
-
-  const result = await askAIService(prompt, modelId);
-
-  res.status(200).json({
-    success: true,
-    response: result,
-    error: null,
-  });
 });
 
 export const getModels = asyncHandler(async (req, res) => {
-  const models = await getFreeModels();
+  const models = await getAvailableModels();
   res.status(200).json({
     success: true,
     response: models,
@@ -33,14 +34,6 @@ export const getModels = asyncHandler(async (req, res) => {
 
 export const saveResponse = asyncHandler(async (req, res) => {
   const { prompt, response } = req.body;
-
-  if (!prompt || !response) {
-    return res.status(400).json({
-      success: false,
-      response: null,
-      error: "Prompt and response are required",
-    });
-  }
 
   const saved = await Response.create({
     prompt,
@@ -53,3 +46,13 @@ export const saveResponse = asyncHandler(async (req, res) => {
     error: null,
   });
 });
+
+export const getAllResponses = asyncHandler(async (req, res) => {
+  const history = await Response.find().sort({ createdAt: -1 });
+  res.status(200).json({
+    success: true,
+    response: history,
+    error: null,
+  });
+});
+
