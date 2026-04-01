@@ -15,11 +15,13 @@ Developing AI-integrated applications often involves complex UI state management
 ## 🔥 Key Features
 - **Intuitive UI**: A clean, Vercel-inspired professional interface.
 - **Dynamic AI Nodes**: Custom React Flow nodes for text input and AI output.
+- **SSE Streaming**: Real-time word-by-word AI response generation for lower perceived latency.
 - **Model Selector**: A dropdown that dynamically fetches available **Free AI Models** from OpenRouter.
 - **Availability Tracking**: Real-time indication and disabling of unavailable models.
-- **In-Node Loading**: Integrated CSS loaders within response nodes for immediate visual feedback.
-- **MongoDB Persistence**: One-click saving of prompt-response pairs.
-- **Fully Responsive**: Mobile-optimized layouts for the flow builder and header.
+- **In-Node Loading**: Integrated CSS loaders and "Skeleton" states within response nodes.
+- **History Management**: Sidebar for viewing, searching, and reloading past prompt-response pairs.
+- **MongoDB Persistence**: One-click saving of successful interactions.
+- **Fully Responsive**: Mobile-optimized stack layouts for the flow builder and header.
 
 ---
 
@@ -28,6 +30,8 @@ Developing AI-integrated applications often involves complex UI state management
 ### Frontend
 - **React (Vite)**: Lightning-fast build and development server.
 - **React Flow**: Powerful library for building node-based editors.
+- **Framer Motion**: Production-ready motion library for React.
+- **Lucide React**: Clean and consistent iconography.
 - **Axios**: Promised-based HTTP client for backend communication.
 - **React Hot Toast**: Minimalist toast notifications for status updates.
 
@@ -100,7 +104,7 @@ npm install
 ```
 Create a `.env` file in the `frontend/` directory:
 ```env
-REACT_APP_API_URL=http://localhost:5000
+VITE_API_URL=http://localhost:5000
 ```
 
 ---
@@ -130,7 +134,8 @@ The application will be live at `http://localhost:5173`.
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | **GET** | `/api/models` | Fetches the current list of available free OpenRouter models. |
-| **POST** | `/api/ask-ai` | Executes a prompt against the selected or auto-determined AI model. |
+| **GET** | `/api/history` | Retrieves all saved prompt-response interactions. |
+| **POST** | `/api/ask-ai` | Executes a streaming prompt against the selected AI model. |
 | **POST** | `/api/save` | Saves the prompt and AI response to the database. |
 
 ---
@@ -183,10 +188,10 @@ PORT=10000
 ---
 
 ## 🔮 Future Roadmap
-- [ ] Add sidebar to view and search previously saved interactions.
 - [ ] Implement user authentication for private project saving.
 - [ ] Support multi-node complex flows with conditional logic.
 - [ ] Add PDF/Markdown export for generated responses.
+- [ ] Integration with more free model providers beyond OpenRouter.
 
 ---
 
