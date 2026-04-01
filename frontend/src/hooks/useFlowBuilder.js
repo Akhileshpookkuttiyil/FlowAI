@@ -1,0 +1,267 @@
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useNodesState, useEdgesState, addEdge } from '@xyflow/react';
+import * as aiService from '../services/ai.service';
+import { getApiErrorMessage } from '../utils/api';
+import { toast } from 'react-hot-toast';
+
+const MOBILE_BREAKPOINT = 768;
+const MODEL_FETCH_MAX_ATTEMPTS = 4;
+const MODEL_FETCH_RETRY_DELAY_MS = 1500;
+
+export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initialEdges) {
+  const [prompt, setPrompt] = useState('');
+  const [response, setResponse] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [models, setModelsList] = useState([]);
+  const [isModelsLoading, setIsModelsLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('');
+  const [failedModels, setFailedModels] = useState(new Set());
+  const [viewportSize, setViewportSize] = useState(getViewportSize);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  const flowContainerRef = useRef(null);
+  const isFetchingModelsRef = useRef(false);
+  const shouldRetryModelsRef = useRef(true);
+  const reactFlowInstanceRef = useRef(null);
+  const pendingViewportFrameRef = useRef(null);
+  const lastMobileViewportKeyRef = useRef('');
+
+  const isMobile = viewportSize.width < MOBILE_BREAKPOINT;
+
+  const initialNodes = useMemo(() => {
+    const initialViewport = getViewportSize();
+    const initialIsMobile = initialViewport.width < MOBILE_BREAKPOINT;
+    const initialLayout = getResponsiveNodeLayout({
+      width: initialViewport.width,
+      height: initialViewport.height,
+      isMobile: initialIsMobile,
+    });
+
+    return [
+      { id: 'input', type: 'inputNode', position: initialLayout.input, data: {} },
+      { id: 'output', type: 'outputNode', position: initialLayout.output, data: {} },
+    ];
+  }, [getViewportSize, getResponsiveNodeLayout]);
+
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  const fetchModels = useCallback(async ({ showErrorToast = true, retryUntilLoaded = false } = {}) => {
+    if (isFetchingModelsRef.current) return;
+    isFetchingModelsRef.current = true;
+    setIsModelsLoading(true);
+
+    try {
+      let loadedModels = [];
+      let lastError = null;
+      for (let attempt = 1; attempt <= MODEL_FETCH_MAX_ATTEMPTS; attempt += 1) {
+        try {
+          const response = await aiService.fetchAvailableModels();
+          loadedModels = response;
+          if (loadedModels.length > 0 || !retryUntilLoaded || !shouldRetryModelsRef.current) break;
+        } catch (err) {
+          lastError = err;
+          if (!retryUntilLoaded || attempt === MODEL_FETCH_MAX_ATTEMPTS || !shouldRetryModelsRef.current) throw err;
+        }
+        if (attempt < MODEL_FETCH_MAX_ATTEMPTS && shouldRetryModelsRef.current) {
+          await new Promise((resolve) => setTimeout(resolve, MODEL_FETCH_RETRY_DELAY_MS));
+        }
+      }
+      if (loadedModels.length === 0 && lastError) throw lastError;
+      setModelsList(loadedModels);
+      
+      // Auto-selection: prioritizing the router if available
+      if (loadedModels.length > 0) {
+        const hasFreeRouter = loadedModels.find(m => m.id === 'openrouter/free');
+        if (hasFreeRouter) {
+          setSelectedModel('openrouter/free');
+        } else {
+          setSelectedModel(loadedModels[0].id);
+        }
+      }
+    } catch (err) {
+      const message = getApiErrorMessage(err, 'Failed to load available models.');
+      if (showErrorToast) toast.error(message);
+    } finally {
+      isFetchingModelsRef.current = false;
+      setIsModelsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchModels({ retryUntilLoaded: true });
+    return () => { shouldRetryModelsRef.current = false; };
+  }, [fetchModels]);
+
+  useEffect(() => {
+    const element = flowContainerRef.current;
+    if (!element) return undefined;
+    let frameId = null;
+    const measure = () => {
+      const next = { width: element.clientWidth || 0, height: element.clientHeight || 0 };
+      setViewportSize((current) => (current.width === next.width && current.height === next.height ? current : next));
+    };
+    measure();
+    const observer = new ResizeObserver(() => {
+      if (frameId) cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(measure);
+    });
+    observer.observe(element);
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+      observer.disconnect();
+    };
+  }, []);
+
+  const handlePromptChange = useCallback((value) => setPrompt(value), []);
+
+  const scheduleMobileFitView = useCallback((instance, viewportKey) => {
+    if (lastMobileViewportKeyRef.current === viewportKey) return;
+    lastMobileViewportKeyRef.current = viewportKey;
+    if (pendingViewportFrameRef.current) cancelAnimationFrame(pendingViewportFrameRef.current);
+    pendingViewportFrameRef.current = requestAnimationFrame(() => {
+      pendingViewportFrameRef.current = requestAnimationFrame(() => {
+        if (reactFlowInstanceRef.current !== instance) {
+          pendingViewportFrameRef.current = null;
+          return;
+        }
+        try {
+          instance.fitView({ padding: 0.25, duration: 300 });
+        } catch (error) {
+          console.error('fitView failed', error);
+        }
+        pendingViewportFrameRef.current = null;
+      });
+    });
+  }, []);
+
+  const onInit = useCallback((instance) => { reactFlowInstanceRef.current = instance; }, []);
+
+  const handleNodesChange = useCallback((changes) => {
+    if (!isMobile) {
+      onNodesChange(changes);
+      return;
+    }
+    onNodesChange(changes.filter((change) => change.type !== 'position'));
+  }, [isMobile, onNodesChange]);
+
+  const handleRunFlow = async () => {
+    if (!prompt.trim()) {
+      toast.error('Please enter a prompt first!');
+      return;
+    }
+    const currentModel = selectedModel || null;
+    setIsLoading(true);
+    setResponse('');
+    try {
+      await aiService.askAI(prompt, currentModel, (chunk) => {
+        setResponse((prev) => prev + chunk);
+      });
+      if (models.length === 0) fetchModels({ showErrorToast: false, retryUntilLoaded: true });
+      toast.success('Response generated successfully!');
+    } catch (error) {
+      const message = getApiErrorMessage(error, 'Failed to fetch AI response.');
+      if (currentModel) setFailedModels((prev) => new Set([...prev, currentModel]));
+      setResponse(`Error: ${message}`);
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!prompt || !response || response === 'Loading...' || response.startsWith('Error:')) {
+      toast.error('Nothing valid to save!');
+      return;
+    }
+    try {
+      await aiService.saveResponse(prompt, response);
+      toast.success('Saved to History!');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to save to database.'));
+    }
+  };
+
+  const handleLoadRecord = useCallback((record) => {
+    setPrompt(record.prompt || '');
+    setResponse(record.response || '');
+    toast.success('Record loaded from history!');
+  }, []);
+  const onConnect = useCallback(
+    (params) => setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } }, eds)),
+    [setEdges]
+  );
+
+  const responsiveLayout = useMemo(
+    () => getResponsiveNodeLayout({ width: viewportSize.width, height: viewportSize.height, isMobile }),
+    [isMobile, viewportSize.height, viewportSize.width, getResponsiveNodeLayout]
+  );
+
+  const flowNodes = useMemo(
+    () =>
+      nodes.map((node) => {
+        const position = isMobile && responsiveLayout[node.id] ? responsiveLayout[node.id] : node.position;
+        const orientation = isMobile ? 'vertical' : 'horizontal';
+
+        if (node.id === 'input') {
+          return {
+            ...node,
+            position,
+            data: {
+              ...node.data,
+              value: prompt,
+              onChange: handlePromptChange,
+              orientation,
+            },
+          };
+        }
+
+        if (node.id === 'output') {
+          return {
+            ...node,
+            position,
+            data: {
+              ...node.data,
+              value: response,
+              isLoading,
+              orientation,
+            },
+          };
+        }
+
+        return {
+          ...node,
+          position,
+        };
+      }),
+    [nodes, prompt, response, isLoading, handlePromptChange, isMobile, responsiveLayout]
+  );
+
+  return {
+    prompt,
+    response,
+    isLoading,
+    models,
+    isModelsLoading,
+    selectedModel,
+    setSelectedModel,
+    failedModels,
+    viewportSize,
+    isHistoryOpen,
+    setIsHistoryOpen,
+    flowContainerRef,
+    isMobile,
+    nodes: flowNodes, // Return the computed nodes for rendering
+    edges,
+    onNodesChange: handleNodesChange,
+    onEdgesChange,
+    onConnect,
+    onInit,
+    fetchModels,
+    handlePromptChange,
+    handleRunFlow,
+    handleSave,
+    handleLoadRecord,
+    canSave: Boolean(response && !isLoading && !response.startsWith('Error:') && response !== 'Loading...')
+  };
+}

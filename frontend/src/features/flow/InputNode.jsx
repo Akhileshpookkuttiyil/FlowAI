@@ -1,8 +1,9 @@
+import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Type } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function InputNode({ data, selected }) {
+const InputNode = memo(({ data, selected }) => {
   const MotionDiv = motion.div;
   const isVertical = data.orientation === 'vertical';
   const handlePosition = isVertical ? Position.Bottom : Position.Right;
@@ -47,4 +48,6 @@ export default function InputNode({ data, selected }) {
       />
     </MotionDiv>
   );
-}
+});
+
+export default InputNode;

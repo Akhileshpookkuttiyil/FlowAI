@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import BrainIcon from './BrainIcon';
 
-export default function OutputNode({ data, selected }) {
+const OutputNode = memo(({ data, selected }) => {
   const MotionDiv = motion.div;
   const isEmpty = !data.isLoading && !data.value;
   const isVertical = data.orientation === 'vertical';
@@ -55,4 +56,6 @@ export default function OutputNode({ data, selected }) {
       </div>
     </MotionDiv>
   );
-}
+});
+
+export default OutputNode;
