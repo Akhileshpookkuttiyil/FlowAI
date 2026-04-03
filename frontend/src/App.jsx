@@ -1,7 +1,17 @@
+import React, { useEffect } from "react";
+import { SignedIn, SignedOut, RedirectToSignIn, useAuth } from "@clerk/clerk-react";
 import FlowBuilder from "./pages/FlowBuilder";
 import { Toaster } from "react-hot-toast";
+import { setApiAuthInterceptor } from "./api/axiosInstance";
 
 function App() {
+  const { getToken } = useAuth();
+
+  // Synchronize Axios instance with Clerk auth state on mount
+  useEffect(() => {
+    setApiAuthInterceptor(getToken);
+  }, [getToken]);
+
   return (
     <div style={{ margin: 0, padding: 0 }}>
       <Toaster
@@ -16,21 +26,16 @@ function App() {
             boxShadow: "0 18px 40px rgba(15, 23, 42, 0.12)",
             fontSize: "13px",
           },
-          success: {
-            iconTheme: {
-              primary: "#10b981",
-              secondary: "#ffffff",
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: "#dc2626",
-              secondary: "#ffffff",
-            },
-          },
         }}
       />
-      <FlowBuilder />
+      
+      <SignedIn>
+        <FlowBuilder />
+      </SignedIn>
+      
+      <SignedOut>
+        <RedirectToSignIn />
+      </SignedOut>
     </div>
   );
 }

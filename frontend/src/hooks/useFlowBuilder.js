@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNodesState, useEdgesState, addEdge } from '@xyflow/react';
+import { useAuth } from '@clerk/clerk-react';
 import * as aiService from '../services/ai.service';
 import { getApiErrorMessage } from '../utils/api';
 import { toast } from 'react-hot-toast';
@@ -9,6 +10,7 @@ const MODEL_FETCH_MAX_ATTEMPTS = 4;
 const MODEL_FETCH_RETRY_DELAY_MS = 1500;
 
 export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initialEdges) {
+  const { getToken } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -154,9 +156,15 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     setIsLoading(true);
     setResponse('');
     try {
+      const token = await getToken();
+      if (!token) {
+        toast.error('Your session has expired. Please sign in again.');
+        setIsLoading(false);
+        return;
+      }
       await aiService.askAI(prompt, currentModel, (chunk) => {
         setResponse((prev) => prev + chunk);
-      });
+      }, token);
       if (models.length === 0) fetchModels({ showErrorToast: false, retryUntilLoaded: true });
       toast.success('Response generated successfully!');
     } catch (error) {

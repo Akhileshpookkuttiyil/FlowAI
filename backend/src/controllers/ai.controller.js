@@ -3,6 +3,9 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Response } from "../models/response.model.js";
 
 export const askAI = asyncHandler(async (req, res) => {
+  if (!req.userId) {
+    return res.status(401).json({ success: false, error: "Unauthorized access" });
+  }
   const { prompt, modelId } = req.body;
 
   try {
@@ -36,6 +39,7 @@ export const saveResponse = asyncHandler(async (req, res) => {
   const { prompt, response } = req.body;
 
   const saved = await Response.create({
+    userId: req.userId,
     prompt,
     response,
   });
@@ -48,7 +52,7 @@ export const saveResponse = asyncHandler(async (req, res) => {
 });
 
 export const getAllResponses = asyncHandler(async (req, res) => {
-  const history = await Response.find().sort({ createdAt: -1 });
+  const history = await Response.find({ userId: req.userId }).sort({ createdAt: -1 });
   res.status(200).json({
     success: true,
     response: history,

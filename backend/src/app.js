@@ -1,10 +1,13 @@
 import express from "express";
 import cors from "cors";
 import { config } from "./config/env.js";
+import { clerkMiddleware } from '@clerk/clerk-sdk-node';
 import aiRoutes from "./routes/ai.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
+
+app.use(clerkMiddleware());
 
 app.use(
   cors({
@@ -17,9 +20,11 @@ app.use(
     },
     methods: ["GET", "POST"],
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
+app.use(clerkMiddleware()); 
 app.use(express.json());
 
 app.use("/api", aiRoutes);

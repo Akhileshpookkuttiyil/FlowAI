@@ -5,13 +5,16 @@ export const fetchAvailableModels = async () => {
   return res.data.response || [];
 };
 
-export const askAI = async (prompt, modelId, onChunk) => {
+export const askAI = async (prompt, modelId, onChunk, token) => {
   const baseURL = api.defaults.baseURL;
   const url = baseURL.startsWith('http') ? baseURL : `${window.location.origin}${baseURL}`;
   
   const response = await fetch(`${url}/ask-ai`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
     body: JSON.stringify({ prompt, modelId }),
   });
 
