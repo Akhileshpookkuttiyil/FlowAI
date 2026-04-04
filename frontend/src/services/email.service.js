@@ -6,6 +6,8 @@ import { api } from '../api/axiosInstance';
  * @returns {Promise}
  */
 export const sendEmail = async (data) => {
-  const response = await api.post('/send-email', data);
+  const response = await api.post('/send-email', data, {
+    timeout: 25000 // 25 seconds for SMTP handshakes in serverless
+  });
   return response.data;
 };

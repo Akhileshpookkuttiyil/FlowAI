@@ -12,13 +12,27 @@ export const sendEmail = asyncHandler(async (req, res) => {
     });
   }
 
-  // Create transporter
+  if (!config.gmailUser || !config.gmailAppPassword) {
+    console.error("Critical: GMAIL_USER or GMAIL_APP_PASSWORD not configured in environment variables.");
+    return res.status(500).json({
+      success: false,
+      error: "Server configuration error: Email credentials missing.",
+    });
+  }
+
+  // Create transporter with high-reliability settings for Serverless
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true, // true for 465, false for 587
     auth: {
       user: config.gmailUser,
       pass: config.gmailAppPassword,
     },
+    // Pool the connection to improve performance if possible
+    pool: true,
+    maxConnections: 1,
+    maxMessages: 1,
   });
 
   const mailOptions = {
@@ -29,16 +43,19 @@ export const sendEmail = asyncHandler(async (req, res) => {
   };
 
   try {
+    console.log(`Attempting to send email to ${to}...`);
     await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully!");
+    
     res.status(200).json({
       success: true,
       message: "Email sent successfully",
     });
   } catch (error) {
-    console.error("Nodemailer Error:", error);
+    console.error("Nodemailer Error Details:", error);
     res.status(500).json({
       success: false,
-      error: "Failed to send email via SMTP.",
+      error: error.message || "Failed to send email via SMTP.",
     });
   }
 });
