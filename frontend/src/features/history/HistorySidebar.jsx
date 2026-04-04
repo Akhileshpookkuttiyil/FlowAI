@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, ChevronRight, MessageSquare } from 'lucide-react';
+import { Clock, ChevronRight, MessageSquare, Loader2, CalendarDays, ArrowUpRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@clerk/clerk-react';
 import * as aiService from '../../services/ai.service';
@@ -67,6 +67,7 @@ export default function HistorySidebar({ isOpen, onClose, onLoadRecord }) {
             <div className="history-sidebar__content">
               {isLoading && (
                 <div className="history-sidebar__loading">
+                  <Loader2 size={16} className="spin" />
                   Loading history...
                 </div>
               )}
@@ -88,7 +89,11 @@ export default function HistorySidebar({ isOpen, onClose, onLoadRecord }) {
                   className="history-item"
                 >
                   <div className="history-item__header">
-                    <span className="history-item__date">{formatDate(item.createdAt)}</span>
+                    <span className="history-item__date">
+                      <CalendarDays size={12} />
+                      {formatDate(item.createdAt)}
+                    </span>
+                    <ArrowUpRight size={14} className="history-item__arrow" />
                   </div>
                   <div className="history-item__prompt">{item.prompt}</div>
                   <div className="history-item__response-preview">

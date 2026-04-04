@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Check, Sparkles, Zap } from 'lucide-react';
+import { ChevronDown, Check, Sparkles, Zap, RefreshCw, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function CustomModelSelector({
@@ -87,6 +87,7 @@ export default function CustomModelSelector({
 
               {isModelsLoading && models.length === 0 && (
                 <div className="model-select__option model-select__option--status">
+                  <Loader2 size={14} className="spin" />
                   <span>Loading available models...</span>
                 </div>
               )}
@@ -97,7 +98,8 @@ export default function CustomModelSelector({
                   onClick={() => onRefreshModels?.()}
                   className="model-select__option model-select__option--status"
                 >
-                  <span>No models loaded yet. Retry</span>
+                  <RefreshCw size={14} />
+                  <span>No models loaded. Retry</span>
                 </button>
               )}
 

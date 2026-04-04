@@ -275,12 +275,32 @@ button {
   box-shadow: var(--app-shadow-md);
 }
 
+.history-item__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .history-item__date {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
   font-weight: 600;
   color: var(--app-text-soft);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.history-item__arrow {
+  color: var(--app-text-soft);
+  opacity: 0;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.history-item:hover .history-item__arrow {
+  opacity: 1;
+  transform: translateY(-1px) translateX(1px);
 }
 
 .history-item__prompt {
@@ -647,6 +667,10 @@ button {
   to {
     transform: rotate(360deg);
   }
+}
+
+.spin {
+  animation: flowSpin 0.7s linear infinite;
 }
 
 @keyframes flowPulse {

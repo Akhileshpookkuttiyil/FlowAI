@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Save, Clock } from 'lucide-react';
+import { Play, Save, Clock, Loader2, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { UserButton, SignInButton } from '@clerk/clerk-react';
 import CustomModelSelector from './CustomModelSelector';
@@ -52,7 +52,7 @@ export default function FlowToolbar({
             className="app-control app-button app-button--primary"
             type="button"
           >
-            <Play size={16} />
+            {isLoading ? <Loader2 size={16} className="spin" /> : <Play size={16} />}
             {isLoading ? 'Executing...' : 'Run Flow'}
           </MotionButton>
 
@@ -92,6 +92,7 @@ export default function FlowToolbar({
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <SignInButton mode="modal">
                 <button className="app-control app-button app-button--primary">
+                  <LogIn size={16} />
                   Sign In
                 </button>
               </SignInButton>
