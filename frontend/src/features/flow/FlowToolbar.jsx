@@ -34,7 +34,7 @@ export default function FlowToolbar({
       <div className="app-toolbar">
         <CustomModelSelector
           models={models}
-          isModelsLoading={isModelsLoading}
+          isModelsLoading={isModelsLoading || isLoading}
           selectedModel={selectedModel}
           setSelectedModel={setSelectedModel}
           failedModels={failedModels}

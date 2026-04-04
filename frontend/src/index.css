@@ -558,6 +558,15 @@ button {
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
 }
 
+.flow-node__field.is-invalid {
+  border-color: var(--app-danger);
+  background: var(--app-danger-soft);
+}
+
+.flow-node__field.is-invalid:focus {
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12);
+}
+
 .flow-node__field::placeholder {
   color: #94a3b8;
 }
@@ -573,6 +582,18 @@ button {
 
 .flow-node__output.is-empty {
   color: #94a3b8;
+}
+
+.flow-node__output.is-error {
+  border-color: var(--app-danger);
+  background: var(--app-danger-soft);
+  color: var(--app-danger);
+}
+
+.flow-node__error-msg {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 .flow-node__loading {
