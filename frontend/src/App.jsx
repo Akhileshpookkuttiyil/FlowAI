@@ -1,16 +1,18 @@
 import React, { useEffect } from "react";
-import { SignedIn, SignedOut, RedirectToSignIn, useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 import FlowBuilder from "./pages/FlowBuilder";
 import { Toaster } from "react-hot-toast";
 import { setApiAuthInterceptor } from "./api/axiosInstance";
 
 function App() {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded } = useAuth();
 
   // Synchronize Axios instance with Clerk auth state on mount
   useEffect(() => {
     setApiAuthInterceptor(getToken);
   }, [getToken]);
+
+  if (!isLoaded) return null;
 
   return (
     <div style={{ margin: 0, padding: 0 }}>
@@ -29,13 +31,7 @@ function App() {
         }}
       />
       
-      <SignedIn>
-        <FlowBuilder />
-      </SignedIn>
-      
-      <SignedOut>
-        <RedirectToSignIn />
-      </SignedOut>
+      <FlowBuilder />
     </div>
   );
 }
