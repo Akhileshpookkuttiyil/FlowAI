@@ -15,6 +15,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [models, setModelsList] = useState([]);
   const [isModelsLoading, setIsModelsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState('');
@@ -116,7 +117,10 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     };
   }, []);
 
-  const handlePromptChange = useCallback((value) => setPrompt(value), []);
+  const handlePromptChange = useCallback((value) => {
+    setPrompt(value);
+    if (error) setError(null);
+  }, [error]);
 
   const scheduleMobileFitView = useCallback((instance, viewportKey) => {
     if (lastMobileViewportKeyRef.current === viewportKey) return;
@@ -153,21 +157,26 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
       toast.error('Please enter a prompt first!');
       return;
     }
-    const currentModel = selectedModel || null;
+    
     setIsLoading(true);
     setResponse('');
+    setError(null);
+
+    const currentModel = selectedModel || null;
+    
     try {
       const token = await getToken();
       
       await aiService.askAI(prompt, currentModel, (chunk) => {
         setResponse((prev) => prev + chunk);
       }, token);
+
       if (models.length === 0) fetchModels({ showErrorToast: false, retryUntilLoaded: true });
       toast.success('Response generated successfully!');
-    } catch (error) {
-      const message = getApiErrorMessage(error, 'Failed to fetch AI response.');
+    } catch (err) {
+      const message = getApiErrorMessage(err, 'Failed to fetch AI response.');
       if (currentModel) setFailedModels((prev) => new Set([...prev, currentModel]));
-      setResponse(`Error: ${message}`);
+      setError(message);
       toast.error(message);
     } finally {
       setIsLoading(false);
@@ -179,7 +188,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
       toast.error('Please sign in to save your work.');
       return;
     }
-    if (!prompt || !response || response === 'Loading...' || response.startsWith('Error:')) {
+    if (!prompt || !response || isLoading || error) {
       toast.error('Nothing valid to save!');
       return;
     }
@@ -194,8 +203,10 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
   const handleLoadRecord = useCallback((record) => {
     setPrompt(record.prompt || '');
     setResponse(record.response || '');
+    setError(null);
     toast.success('Record loaded from history!');
   }, []);
+
   const onConnect = useCallback(
     (params) => setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } }, eds)),
     [setEdges]
@@ -221,6 +232,8 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
               value: prompt,
               onChange: handlePromptChange,
               orientation,
+              isLoading,
+              error: error ? true : false,
             },
           };
         }
@@ -233,6 +246,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
               ...node.data,
               value: response,
               isLoading,
+              error: error,
               orientation,
             },
           };
@@ -243,13 +257,14 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
           position,
         };
       }),
-    [nodes, prompt, response, isLoading, handlePromptChange, isMobile, responsiveLayout]
+    [nodes, prompt, response, isLoading, error, handlePromptChange, isMobile, responsiveLayout]
   );
 
   return {
     prompt,
     response,
     isLoading,
+    error,
     isSignedIn,
     models,
     isModelsLoading,
@@ -272,6 +287,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     handleRunFlow,
     handleSave,
     handleLoadRecord,
-    canSave: Boolean(isSignedIn && response && !isLoading && !response.startsWith('Error:') && response !== 'Loading...')
+    canSave: Boolean(isSignedIn && response && !isLoading && !error)
   };
 }
+
