@@ -94,6 +94,7 @@ function FlowContent() {
         setIsHistoryOpen={flow.setIsHistoryOpen}
         isLoading={flow.isLoading}
         canSave={flow.canSave}
+        isSignedIn={flow.isSignedIn}
       />
 
       <main className="app-main" ref={flow.flowContainerRef}>

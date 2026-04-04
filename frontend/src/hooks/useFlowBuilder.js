@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNodesState, useEdgesState, addEdge } from '@xyflow/react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import * as aiService from '../services/ai.service';
 import { getApiErrorMessage } from '../utils/api';
 import { toast } from 'react-hot-toast';
@@ -11,6 +11,7 @@ const MODEL_FETCH_RETRY_DELAY_MS = 1500;
 
 export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initialEdges) {
   const { getToken } = useAuth();
+  const { isSignedIn } = useUser();
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -157,11 +158,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     setResponse('');
     try {
       const token = await getToken();
-      if (!token) {
-        toast.error('Your session has expired. Please sign in again.');
-        setIsLoading(false);
-        return;
-      }
+      
       await aiService.askAI(prompt, currentModel, (chunk) => {
         setResponse((prev) => prev + chunk);
       }, token);
@@ -178,6 +175,10 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
   };
 
   const handleSave = async () => {
+    if (!isSignedIn) {
+      toast.error('Please sign in to save your work.');
+      return;
+    }
     if (!prompt || !response || response === 'Loading...' || response.startsWith('Error:')) {
       toast.error('Nothing valid to save!');
       return;
@@ -249,6 +250,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     prompt,
     response,
     isLoading,
+    isSignedIn,
     models,
     isModelsLoading,
     selectedModel,
@@ -259,7 +261,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     setIsHistoryOpen,
     flowContainerRef,
     isMobile,
-    nodes: flowNodes, // Return the computed nodes for rendering
+    nodes: flowNodes,
     edges,
     onNodesChange: handleNodesChange,
     onEdgesChange,
@@ -270,6 +272,6 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     handleRunFlow,
     handleSave,
     handleLoadRecord,
-    canSave: Boolean(response && !isLoading && !response.startsWith('Error:') && response !== 'Loading...')
+    canSave: Boolean(isSignedIn && response && !isLoading && !response.startsWith('Error:') && response !== 'Loading...')
   };
 }

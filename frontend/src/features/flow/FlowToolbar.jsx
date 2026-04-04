@@ -1,6 +1,7 @@
 import React from 'react';
 import { Play, Save, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { UserButton, SignInButton } from '@clerk/clerk-react';
 import CustomModelSelector from './CustomModelSelector';
 
 const MotionButton = motion.button;
@@ -16,8 +17,10 @@ export default function FlowToolbar({
   handleSave,
   setIsHistoryOpen,
   isLoading,
-  canSave
+  canSave,
+  isSignedIn,
 }) {
+
   return (
     <header className="app-header">
       <div className="app-brand">
@@ -53,29 +56,47 @@ export default function FlowToolbar({
             {isLoading ? 'Executing...' : 'Run Flow'}
           </MotionButton>
 
-          <MotionButton
-            whileTap={{ scale: 0.98 }}
-            transition={{ duration: 0.15 }}
-            onClick={handleSave}
-            disabled={!canSave}
-            className="app-control app-button app-button--secondary"
-            type="button"
-          >
-            <Save size={16} />
-            Save
-          </MotionButton>
+          {isSignedIn ? (
+            <>
+              <MotionButton
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.15 }}
+                onClick={handleSave}
+                disabled={!canSave}
+                className="app-control app-button app-button--secondary"
+                type="button"
+              >
+                <Save size={16} />
+                Save
+              </MotionButton>
 
-          <div className="app-toolbar-divider" />
+              <div className="app-toolbar-divider" />
 
-          <MotionButton
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setIsHistoryOpen(true)}
-            className="app-control app-button app-button--secondary"
-            type="button"
-          >
-            <Clock size={16} />
-            History
-          </MotionButton>
+              <MotionButton
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setIsHistoryOpen(true)}
+                className="app-control app-button app-button--secondary"
+                type="button"
+              >
+                <Clock size={16} />
+                History
+              </MotionButton>
+
+              <div className="app-toolbar-divider" />
+
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <UserButton afterSignOutUrl="/" />
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <SignInButton mode="modal">
+                <button className="app-control app-button app-button--primary">
+                  Sign In
+                </button>
+              </SignInButton>
+            </div>
+          )}
         </div>
       </div>
     </header>
