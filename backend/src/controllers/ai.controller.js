@@ -13,9 +13,18 @@ export const askAI = asyncHandler(async (req, res) => {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
+    stream.on("error", (err) => {
+      console.error("Stream Error:", err.message);
+      if (!res.headersSent) {
+        res.status(500).write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+      }
+      res.end();
+    });
+
     stream.pipe(res);
   } catch (error) {
-    res.status(500).json({
+    const status = error.message.includes("API Key") ? 401 : 500;
+    res.status(status).json({
       success: false,
       response: null,
       error: error.message || "Failed to start AI stream",
