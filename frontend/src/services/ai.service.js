@@ -34,9 +34,8 @@ export const askAI = async (prompt, modelId, onChunk, token) => {
     const chunk = decoder.decode(value, { stream: true });
     accumulatedData += chunk;
 
-    // OpenRouter sends data: {...} events
     const lines = accumulatedData.split('\n');
-    accumulatedData = lines.pop() || ''; // Keep the incomplete line
+    accumulatedData = lines.pop() || '';
 
     for (const line of lines) {
       const trimmedLine = line.trim();
@@ -48,7 +47,7 @@ export const askAI = async (prompt, modelId, onChunk, token) => {
           const delta = json.choices?.[0]?.delta?.content || '';
           if (delta) onChunk(delta);
         } catch (e) {
-          // Incomplete fragment or non-json data
+          // Incomplete fragment
         }
       }
     }

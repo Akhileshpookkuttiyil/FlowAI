@@ -31,6 +31,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
   const flowContainerRef = useRef(null);
   const isFetchingModelsRef = useRef(false);
   const shouldRetryModelsRef = useRef(true);
+  const hasInitialSelectionRef = useRef(false);
   const reactFlowInstanceRef = useRef(null);
   const pendingViewportFrameRef = useRef(null);
   const lastMobileViewportKeyRef = useRef('');
@@ -80,10 +81,12 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     toast.success('Gmail action added!');
   }, [isSignedIn, nodes, viewportSize, setNodes]);
 
-  const fetchModels = useCallback(async ({ showErrorToast = true, retryUntilLoaded = false } = {}) => {
+  const fetchModels = useCallback(async ({ showErrorToast = true, retryUntilLoaded = false, clearFailures = false } = {}) => {
     if (isFetchingModelsRef.current) return;
     isFetchingModelsRef.current = true;
     setIsModelsLoading(true);
+
+    if (clearFailures) setFailedModels(new Set());
 
     try {
       let loadedModels = [];
@@ -104,14 +107,15 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
       if (loadedModels.length === 0 && lastError) throw lastError;
       setModelsList(loadedModels);
       
-      // Auto-selection: prioritizing the router if available
-      if (loadedModels.length > 0) {
+      // Auto-selection: only on the very first successful load if no model is selected
+      if (loadedModels.length > 0 && !selectedModel && !hasInitialSelectionRef.current) {
         const hasFreeRouter = loadedModels.find(m => m.id === 'openrouter/free');
         if (hasFreeRouter) {
           setSelectedModel('openrouter/free');
         } else {
           setSelectedModel(loadedModels[0].id);
         }
+        hasInitialSelectionRef.current = true;
       }
     } catch (err) {
       const message = getApiErrorMessage(err, 'Failed to load available models.');
@@ -120,7 +124,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
       isFetchingModelsRef.current = false;
       setIsModelsLoading(false);
     }
-  }, []);
+  }, [selectedModel]);
 
   useEffect(() => {
     fetchModels({ retryUntilLoaded: true });
@@ -221,20 +225,44 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     setResponse('');
     setError(null);
 
-    const currentModel = selectedModel || null;
+    const initialModel = selectedModel || null;
     
     try {
       const token = await getToken();
       
-      await aiService.askAI(prompt, currentModel, (chunk) => {
-        setResponse((prev) => prev + chunk);
-      }, token);
+      try {
+        await aiService.askAI(prompt, initialModel, (chunk) => {
+          setResponse((prev) => prev + chunk);
+        }, token);
+      } catch (err) {
+        // If a specific model was selected and it failed, fallback to Auto Select
+        if (initialModel) {
+          const modelName = initialModel.split('/').pop() || initialModel;
+          console.warn(`Model ${initialModel} failed. Falling back to Auto Select.`);
+          toast.error(`${modelName} is currently unavailable. Falling back to Auto Select...`, {
+            icon: '🔄',
+            duration: 4000
+          });
+          
+          setFailedModels((prev) => new Set([...prev, initialModel]));
+          hasInitialSelectionRef.current = true; // Prevent fetchModels from resetting this back
+          setSelectedModel(''); // Update UI to show Auto Select
+          
+          // Reset response and retry with Auto Select (null)
+          setResponse('');
+          await aiService.askAI(prompt, null, (chunk) => {
+            setResponse((prev) => prev + chunk);
+          }, token);
+        } else {
+          // If it was already Auto Select and failed, throw to outer catch
+          throw err;
+        }
+      }
 
       if (models.length === 0) fetchModels({ showErrorToast: false, retryUntilLoaded: true });
       toast.success('Response generated successfully!');
     } catch (err) {
       const message = getApiErrorMessage(err, 'Failed to fetch AI response.');
-      if (currentModel) setFailedModels((prev) => new Set([...prev, currentModel]));
       setError(message);
       toast.error(message);
     } finally {

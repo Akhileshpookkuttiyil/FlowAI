@@ -38,7 +38,7 @@ export default function FlowToolbar({
           selectedModel={selectedModel}
           setSelectedModel={setSelectedModel}
           failedModels={failedModels}
-          onRefreshModels={fetchModels}
+          onRefreshModels={() => fetchModels({ clearFailures: true })}
         />
 
         <div className="app-toolbar-divider" />
