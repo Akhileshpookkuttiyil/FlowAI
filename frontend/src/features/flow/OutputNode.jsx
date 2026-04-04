@@ -43,13 +43,15 @@ const OutputNode = memo(({ data, selected }) => {
         )}
       </div>
 
-      <div className={`nowheel nodrag flow-node__output ${isEmpty ? 'is-empty' : ''}`}>
+      <div className={`nowheel nodrag flow-node__output ${isEmpty ? 'is-empty' : ''} ${data.error ? 'is-error' : ''}`}>
         {data.isLoading ? (
           <div className="flow-node__loading">
             <div className="flow-node__skeleton" style={{ width: '82%' }} />
             <div className="flow-node__skeleton" style={{ width: '64%' }} />
             <div className="flow-node__skeleton" style={{ width: '72%' }} />
           </div>
+        ) : data.error ? (
+          <div className="flow-node__error-msg">{data.error}</div>
         ) : (
           data.value || 'Awaiting execution...'
         )}

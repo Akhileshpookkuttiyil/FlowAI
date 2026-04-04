@@ -34,10 +34,11 @@ const InputNode = memo(({ data, selected }) => {
       </div>
 
       <textarea
-        className="nodrag nowheel flow-node__field"
+        className={`nodrag nowheel flow-node__field ${data.error ? 'is-invalid' : ''}`}
         placeholder="Type your prompt here..."
         value={data.value}
         onChange={onChange}
+        disabled={data.isLoading}
       />
 
       <Handle
