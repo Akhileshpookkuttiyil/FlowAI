@@ -778,3 +778,198 @@ button {
     gap: 10px;
   }
 }
+/* Vertical Sidebar with Glassmorphism */
+.app-sidebar {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  width: 44px;
+  min-height: 180px;
+  background: rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 12px;
+  padding: 10px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07) !important;
+  z-index: 1000;
+}
+
+.sidebar-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--app-text-muted);
+  background: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  box-shadow: var(--app-shadow-sm);
+}
+
+.flow-node--gmail {
+  width: 320px !important;
+  min-height: 440px !important;
+}
+
+.sidebar-button:hover {
+  background: white !important;
+  color: var(--btn-color);
+  border-color: var(--btn-color);
+  transform: scale(1.1) translateX(4px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+}
+
+.flow-node__handle--gmail {
+  background: #dc2626 !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 4px !important;
+  border: 2px solid white !important;
+  box-shadow: 0 0 0 1px #dc2626;
+}
+
+/* Premium Gmail Node Detail Styles */
+.flow-node__header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.flow-node__main-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--app-text);
+  line-height: 1.2;
+}
+
+.flow-node__sub-title {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--app-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.flow-node__status-bubble {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--app-border);
+}
+
+.flow-node__field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.flow-node__field-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.8;
+}
+
+.flow-node__field-icon {
+  color: var(--app-text-muted);
+}
+
+.flow-node__input-premium, .flow-node__textarea-premium {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13px;
+  border-radius: 12px;
+  border: 1px solid var(--app-border);
+  background: rgba(255, 255, 255, 0.3);
+  color: var(--app-text);
+  outline: none;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px) !important;
+}
+
+.flow-node__input-premium:focus, .flow-node__textarea-premium:focus {
+  border-color: #dc2626;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+}
+
+.flow-node__textarea-premium {
+  min-height: 120px !important;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.flow-node__actions {
+  margin-top: 8px;
+}
+
+.flow-node__action-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.flow-node__action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
+.flow-node__action-btn:disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.flow-node__footer-hint {
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.text-success { color: #10b981 !important; }
+.text-danger { color: #ef4444 !important; }
+.text-muted { color: #94a3b8 !important; }
+
+/* Disconnected Node State */
+.flow-node--gmail.is-disconnected {
+  opacity: 0.8 !important;
+  filter: grayscale(0.2) !important;
+}
+
+.flow-node--gmail.is-disconnected .flow-node__badge--gmail {
+  background: #f3f4f6 !important;
+  color: #9ca3af !important;
+}
+
+.flow-node--gmail.is-disconnected .flow-node__handle--gmail {
+  background: #9ca3af !important;
+}

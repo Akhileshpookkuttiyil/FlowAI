@@ -36,4 +36,6 @@ export const config = {
   corsOrigins: [...new Set([...localOrigins, ...configuredOrigins])],
   openRouterSiteUrl: normalizedOpenRouterSiteUrl || configuredOrigins[0] || "",
   openRouterAppName: process.env.OPENROUTER_APP_NAME || "FlowAI Builder",
+  gmailUser: process.env.GMAIL_USER,
+  gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
 };

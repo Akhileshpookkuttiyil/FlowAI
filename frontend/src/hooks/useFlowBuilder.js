@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNodesState, useEdgesState, addEdge } from '@xyflow/react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import * as aiService from '../services/ai.service';
+import * as emailService from '../services/email.service';
 import { getApiErrorMessage } from '../utils/api';
 import { toast } from 'react-hot-toast';
 
@@ -16,6 +17,10 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  const [emailData, setEmailData] = useState({ to: '', subject: 'AI Response from FlowAI' });
+  const [isEmailSending, setIsEmailSending] = useState(false);
+
   const [models, setModelsList] = useState([]);
   const [isModelsLoading, setIsModelsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState('');
@@ -47,8 +52,33 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     ];
   }, [getViewportSize, getResponsiveNodeLayout]);
 
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  const addGmailNode = useCallback(() => {
+    if (!isSignedIn) {
+      toast.error('Please sign in to use Gmail actions.');
+      return;
+    }
+
+    if (nodes.find(n => n.id === 'gmail')) {
+      toast.error('Gmail node already exists on the canvas.');
+      return;
+    }
+
+    const { width, height } = viewportSize;
+    const position = { x: width / 2 - 150, y: height / 2 - 100 };
+
+    const newNode = {
+      id: 'gmail',
+      type: 'gmailNode',
+      position,
+      data: {},
+    };
+
+    setNodes((nds) => nds.concat(newNode));
+    toast.success('Gmail action added!');
+  }, [isSignedIn, nodes, viewportSize, setNodes]);
 
   const fetchModels = useCallback(async ({ showErrorToast = true, retryUntilLoaded = false } = {}) => {
     if (isFetchingModelsRef.current) return;
@@ -121,6 +151,35 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     setPrompt(value);
     if (error) setError(null);
   }, [error]);
+
+  const handleEmailDataChange = useCallback((field, value) => {
+    if (field === 'value') {
+      setResponse(value);
+      return;
+    }
+    setEmailData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleSendEmail = async () => {
+    if (!emailData.to || !response) {
+      toast.error('Recipient and message content are required!');
+      return;
+    }
+
+    setIsEmailSending(true);
+    try {
+      await emailService.sendEmail({
+        to: emailData.to,
+        subject: emailData.subject,
+        message: response
+      });
+      toast.success('Email sent successfully!');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to send email.'));
+    } finally {
+      setIsEmailSending(false);
+    }
+  };
 
   const scheduleMobileFitView = useCallback((instance, viewportKey) => {
     if (lastMobileViewportKeyRef.current === viewportKey) return;
@@ -218,8 +277,13 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
   );
 
   const flowNodes = useMemo(
-    () =>
-      nodes.map((node) => {
+    () => {
+      const isGmailConnected = edges.some(edge => 
+        (edge.source === 'output' && edge.target === 'gmail') || 
+        (edge.source === 'gmail' && edge.target === 'output')
+      );
+
+      return nodes.map((node) => {
         const position = isMobile && responsiveLayout[node.id] ? responsiveLayout[node.id] : node.position;
         const orientation = isMobile ? 'vertical' : 'horizontal';
 
@@ -252,12 +316,32 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
           };
         }
 
+        if (node.id === 'gmail') {
+          return {
+            ...node,
+            position,
+            data: {
+              ...node.data,
+              value: isGmailConnected ? response : '',
+              to: emailData.to,
+              subject: emailData.subject,
+              onEmailDataChange: handleEmailDataChange,
+              onSend: handleSendEmail,
+              isSending: isEmailSending,
+              isSignedIn,
+              isConnected: isGmailConnected,
+              orientation,
+            }
+          };
+        }
+
         return {
           ...node,
           position,
         };
-      }),
-    [nodes, prompt, response, isLoading, error, handlePromptChange, isMobile, responsiveLayout]
+      });
+    },
+    [nodes, edges, prompt, response, isLoading, error, emailData, isEmailSending, isSignedIn, handlePromptChange, handleEmailDataChange, handleSendEmail, isMobile, responsiveLayout]
   );
 
   return {
@@ -287,6 +371,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     handleRunFlow,
     handleSave,
     handleLoadRecord,
+    addGmailNode,
     canSave: Boolean(isSignedIn && response && !isLoading && !error)
   };
 }

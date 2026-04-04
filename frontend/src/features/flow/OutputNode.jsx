@@ -26,6 +26,12 @@ const OutputNode = memo(({ data, selected }) => {
         className="flow-node__handle flow-node__handle--output"
         style={handleStyle}
       />
+      <Handle
+        type="source"
+        position={isVertical ? Position.Bottom : Position.Right}
+        className="flow-node__handle flow-node__handle--output"
+        style={isVertical ? { bottom: -8, left: '50%', transform: 'translateX(-50%)' } : { right: -8 }}
+      />
 
       <div className="flow-node__header">
         <div className="flow-node__title">

@@ -3,6 +3,7 @@ import cors from "cors";
 import { config } from "./config/env.js";
 import { ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
 import aiRoutes from "./routes/ai.routes.js";
+import emailRoutes from "./routes/email.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -28,6 +29,7 @@ app.use(ClerkExpressWithAuth());
 app.use(express.json());
 
 app.use("/api", aiRoutes);
+app.use("/api", emailRoutes);
 
 app.get("/", (req, res) => {
   res.send("FlowAI API is running...");
