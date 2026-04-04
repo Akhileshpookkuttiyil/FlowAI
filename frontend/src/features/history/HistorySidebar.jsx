@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Trash2, ChevronRight, MessageSquare } from 'lucide-react';
+import { Clock, ChevronRight, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useUser } from '@clerk/clerk-react';
 import * as aiService from '../../services/ai.service';
-import { toast } from 'react-hot-toast';
 
 export default function HistorySidebar({ isOpen, onClose, onLoadRecord }) {
+  const { isSignedIn } = useUser();
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchHistory = async () => {
+    if (!isSignedIn) return;
     setIsLoading(true);
     try {
       const data = await aiService.getHistory();
@@ -22,7 +24,7 @@ export default function HistorySidebar({ isOpen, onClose, onLoadRecord }) {
 
   useEffect(() => {
     if (isOpen) fetchHistory();
-  }, [isOpen]);
+  }, [isOpen, isSignedIn]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
