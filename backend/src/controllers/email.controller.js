@@ -20,19 +20,16 @@ export const sendEmail = asyncHandler(async (req, res) => {
     });
   }
 
-  // Create transporter with high-reliability settings for Serverless
+  // Create transporter optimized for single-invocation Serverless functions
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true, // true for 465, false for 587
+    service: "gmail",
     auth: {
       user: config.gmailUser,
       pass: config.gmailAppPassword,
     },
-    // Pool the connection to improve performance if possible
-    pool: true,
-    maxConnections: 1,
-    maxMessages: 1,
+    // Serverless requires fast handshakes - no pooling
+    logger: false,
+    debug: false,
   });
 
   const mailOptions = {

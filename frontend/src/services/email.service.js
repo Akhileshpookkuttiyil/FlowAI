@@ -7,7 +7,7 @@ import { api } from '../api/axiosInstance';
  */
 export const sendEmail = async (data) => {
   const response = await api.post('/send-email', data, {
-    timeout: 25000 // 25 seconds for SMTP handshakes in serverless
+    timeout: 9500 // Cut off slightly before Vercel kills it for better feedback
   });
   return response.data;
 };
