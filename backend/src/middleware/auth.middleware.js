@@ -1,19 +1,14 @@
-import { getAuth } from '@clerk/clerk-sdk-node';
-
 /**
- * Middleware to strictly enforce Clerk authentication.
- * Attaches req.userId for downstream controller use.
+ * Attaches req.userId from Clerk-verified token (populated by ClerkExpressWithAuth in app.js).
  */
 export const requireAuth = (req, res, next) => {
-  const { userId } = getAuth(req);
-  
-  if (!userId) {
+  if (!req.auth || !req.auth.userId) {
     return res.status(401).json({ 
       success: false, 
       error: "Session expired or invalid token" 
     });
   }
   
-  req.userId = userId;
+  req.userId = req.auth.userId;
   next();
 };

@@ -8,7 +8,7 @@ const router = express.Router();
 router.get("/models", getModels);
 router.get("/history", requireAuth, getAllResponses);
 
-router.post("/ask-ai", requireAuth, validateRequest(askAISchema), askAI);
+router.post("/ask-ai", validateRequest(askAISchema), askAI);
 router.post("/save", requireAuth, validateRequest(saveResponseSchema), saveResponse);
 
 export default router;

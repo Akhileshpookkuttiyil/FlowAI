@@ -3,9 +3,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Response } from "../models/response.model.js";
 
 export const askAI = asyncHandler(async (req, res) => {
-  if (!req.userId) {
-    return res.status(401).json({ success: false, error: "Unauthorized access" });
-  }
   const { prompt, modelId } = req.body;
 
   try {
