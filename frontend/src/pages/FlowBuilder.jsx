@@ -3,7 +3,7 @@ import '@xyflow/react/dist/style.css';
 
 import InputNode from '../features/flow/InputNode';
 import OutputNode from '../features/flow/OutputNode';
-import GmailNode from '../features/flow/GmailNode';
+import EmailNode from '../features/flow/EmailNode';
 import HistorySidebar from '../features/history/HistorySidebar';
 import FlowToolbar from '../features/flow/FlowToolbar';
 import FlowCanvas from '../features/flow/FlowCanvas';
@@ -14,7 +14,7 @@ const MOBILE_BREAKPOINT = 768;
 const DESKTOP_NODE_WIDTH = 340;
 const MOBILE_NODE_WIDTH = 280;
 const NODE_HEIGHT = 188;
-const GMAIL_NODE_HEIGHT = 320;
+const EMAIL_NODE_HEIGHT = 320;
 const DESKTOP_MIN_GAP = 120;
 const DESKTOP_MAX_GAP = 320;
 const DESKTOP_GAP_RATIO = 0.16;
@@ -23,8 +23,8 @@ const DESKTOP_OFFSET_X = 120;
 const DESKTOP_OFFSET_Y = 18;
 const DESKTOP_OUTPUT_EXTRA_X = 220;
 const DESKTOP_OUTPUT_Y_OFFSET = -40;
-const DESKTOP_GMAIL_EXTRA_X = 420;
-const DESKTOP_GMAIL_Y_OFFSET = 20;
+const DESKTOP_EMAIL_EXTRA_X = 420;
+const DESKTOP_EMAIL_Y_OFFSET = 20;
 
 const MOBILE_SIDE_PADDING = 16;
 const MOBILE_TOP_PADDING = 24;
@@ -64,7 +64,7 @@ const getResponsiveNodeLayout = ({ width, height, isMobile }) => {
     return {
       input: { x: inputX, y: inputY },
       output: { x: inputX, y: inputY + MOBILE_NODE_HEIGHT + MOBILE_STACK_GAP },
-      gmail: { x: inputX, y: inputY + MOBILE_NODE_HEIGHT * 2 + MOBILE_STACK_GAP * 2 },
+      email: { x: inputX, y: inputY + MOBILE_NODE_HEIGHT * 2 + MOBILE_STACK_GAP * 2 },
     };
   }
 
@@ -79,9 +79,9 @@ const getResponsiveNodeLayout = ({ width, height, isMobile }) => {
       x: startX + DESKTOP_NODE_WIDTH + gap + DESKTOP_OUTPUT_EXTRA_X,
       y: centeredY + DESKTOP_OUTPUT_Y_OFFSET,
     },
-    gmail: {
-      x: startX + (DESKTOP_NODE_WIDTH + gap) * 2 + DESKTOP_GMAIL_EXTRA_X,
-      y: centeredY + DESKTOP_GMAIL_Y_OFFSET,
+    email: {
+      x: startX + (DESKTOP_NODE_WIDTH + gap) * 2 + DESKTOP_EMAIL_EXTRA_X,
+      y: centeredY + DESKTOP_EMAIL_Y_OFFSET,
     }
   };
 };
@@ -90,7 +90,7 @@ function FlowContent() {
   const nodeTypes = useMemo(() => ({ 
     inputNode: InputNode, 
     outputNode: OutputNode,
-    gmailNode: GmailNode
+    emailNode: EmailNode
   }), []);
 
   const flow = useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initialEdges);
@@ -115,7 +115,7 @@ function FlowContent() {
       <main className="app-main" ref={flow.flowContainerRef}>
         <FlowSidebar 
           isSignedIn={flow.isSignedIn} 
-          onAddGmailNode={flow.addGmailNode} 
+          onAddEmailNode={flow.addEmailNode} 
         />
 
         <FlowCanvas

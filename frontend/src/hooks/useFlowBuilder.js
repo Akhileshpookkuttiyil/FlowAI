@@ -56,14 +56,14 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  const addGmailNode = useCallback(() => {
+  const addEmailNode = useCallback(() => {
     if (!isSignedIn) {
-      toast.error('Please sign in to use Gmail actions.');
+      toast.error('Please sign in to use Email actions.');
       return;
     }
 
-    if (nodes.find(n => n.id === 'gmail')) {
-      toast.error('Gmail node already exists on the canvas.');
+    if (nodes.find(n => n.id === 'email')) {
+      toast.error('Email node already exists on the canvas.');
       return;
     }
 
@@ -71,14 +71,14 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     const position = { x: width / 2 - 150, y: height / 2 - 100 };
 
     const newNode = {
-      id: 'gmail',
-      type: 'gmailNode',
+      id: 'email',
+      type: 'emailNode',
       position,
       data: {},
     };
 
     setNodes((nds) => nds.concat(newNode));
-    toast.success('Gmail action added!');
+    toast.success('Email action added!');
   }, [isSignedIn, nodes, viewportSize, setNodes]);
 
   const fetchModels = useCallback(async ({ showErrorToast = true, retryUntilLoaded = false, clearFailures = false } = {}) => {
@@ -306,9 +306,9 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
 
   const flowNodes = useMemo(
     () => {
-      const isGmailConnected = edges.some(edge => 
-        (edge.source === 'output' && edge.target === 'gmail') || 
-        (edge.source === 'gmail' && edge.target === 'output')
+      const isEmailConnected = edges.some(edge => 
+        (edge.source === 'output' && edge.target === 'email') || 
+        (edge.source === 'email' && edge.target === 'output')
       );
 
       return nodes.map((node) => {
@@ -344,20 +344,20 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
           };
         }
 
-        if (node.id === 'gmail') {
+        if (node.id === 'email') {
           return {
             ...node,
             position,
             data: {
               ...node.data,
-              value: isGmailConnected ? response : '',
+              value: isEmailConnected ? response : '',
               to: emailData.to,
               subject: emailData.subject,
               onEmailDataChange: handleEmailDataChange,
               onSend: handleSendEmail,
               isSending: isEmailSending,
               isSignedIn,
-              isConnected: isGmailConnected,
+              isConnected: isEmailConnected,
               orientation,
             }
           };
@@ -399,7 +399,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     handleRunFlow,
     handleSave,
     handleLoadRecord,
-    addGmailNode,
+    addEmailNode,
     canSave: Boolean(isSignedIn && response && !isLoading && !error)
   };
 }

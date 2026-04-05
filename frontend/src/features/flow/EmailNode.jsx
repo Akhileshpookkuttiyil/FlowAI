@@ -3,7 +3,7 @@ import { Handle, Position } from '@xyflow/react';
 import { Mail, Send, Loader2, CheckCircle2, AlertCircle, User, MessageSquareText, Heading, Text } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const GmailNode = memo(({ data, selected }) => {
+const EmailNode = memo(({ data, selected }) => {
   const MotionDiv = motion.div;
   
   const isVertical = data.orientation === 'vertical';
@@ -24,23 +24,23 @@ const GmailNode = memo(({ data, selected }) => {
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.2 }}
-      className={`flow-node flow-node--gmail ${selected ? 'is-selected' : ''} ${!data.isConnected ? 'is-disconnected' : ''}`}
+      className={`flow-node flow-node--email ${selected ? 'is-selected' : ''} ${!data.isConnected ? 'is-disconnected' : ''}`}
     >
       <Handle
         type="target"
         position={handlePosition}
-        className="flow-node__handle flow-node__handle--gmail"
+        className="flow-node__handle flow-node__handle--email"
         style={handleStyle}
       />
 
       <div className="flow-node__header">
         <div className="flow-node__title">
-          <span className="flow-node__badge flow-node__badge--gmail">
+          <span className="flow-node__badge flow-node__badge--email">
             <Mail size={16} strokeWidth={2.25} />
           </span>
           <div className="flow-node__header-text">
-             <span className="flow-node__main-title">Gmail Action</span>
-             <span className="flow-node__sub-title">Email Integration</span>
+             <span className="flow-node__main-title">Email Dispatch</span>
+             <span className="flow-node__sub-title">Automation Action</span>
           </div>
         </div>
         
@@ -91,7 +91,7 @@ const GmailNode = memo(({ data, selected }) => {
           </div>
           <textarea
             className="nodrag nowheel flow-node__textarea-premium"
-            placeholder={data.isConnected ? "Awaiting AI Response Content..." : "Connect Source Node to Compose"}
+            placeholder={data.isConnected ? "Awaiting Flow Content..." : "Connect Source Node to Compose"}
             value={data.value || ''}
             onChange={(e) => data.onEmailDataChange?.('value', e.target.value)}
             disabled={data.isSending || !data.isConnected}
@@ -100,7 +100,7 @@ const GmailNode = memo(({ data, selected }) => {
 
         <div className="flow-node__actions">
           <button 
-            className={`flow-node__action-btn flow-node__action-btn--gmail ${data.isSending ? 'is-loading' : ''}`}
+            className={`flow-node__action-btn flow-node__action-btn--email ${data.isSending ? 'is-loading' : ''}`}
             onClick={handleSend}
             disabled={data.isSending || !data.isConnected || !data.isSignedIn}
           >
@@ -112,11 +112,11 @@ const GmailNode = memo(({ data, selected }) => {
         {!data.isSignedIn ? (
           <p className="flow-node__footer-hint text-danger">● Authentication required</p>
         ) : !data.isConnected && (
-            <p className="flow-node__footer-hint text-muted">● Waiting for AI connection</p>
+            <p className="flow-node__footer-hint text-muted">● Waiting for Flow connection</p>
         )}
       </div>
     </MotionDiv>
   );
 });
 
-export default GmailNode;
+export default EmailNode;

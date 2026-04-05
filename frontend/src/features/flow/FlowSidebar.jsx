@@ -15,7 +15,7 @@ const SidebarButton = ({ icon: Icon, onClick, title, color }) => (
   </motion.button>
 );
 
-export default function FlowSidebar({ isSignedIn, onAddGmailNode }) {
+export default function FlowSidebar({ isSignedIn, onAddEmailNode }) {
   if (!isSignedIn) return null;
 
   return (
@@ -23,9 +23,9 @@ export default function FlowSidebar({ isSignedIn, onAddGmailNode }) {
       <div className="sidebar-section">
         <SidebarButton 
           icon={Mail} 
-          onClick={onAddGmailNode} 
-          title="Add Gmail Action" 
-          color="#dc2626"
+          onClick={onAddEmailNode} 
+          title="Add Email Action" 
+          color="#3b82f6"
         />
       </div>
     </aside>

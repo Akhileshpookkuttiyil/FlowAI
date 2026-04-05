@@ -38,4 +38,5 @@ export const config = {
   openRouterAppName: process.env.OPENROUTER_APP_NAME || "FlowAI Builder",
   gmailUser: process.env.GMAIL_USER,
   gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
+  brevoApiKey: process.env.BREVO_API_KEY,
 };
