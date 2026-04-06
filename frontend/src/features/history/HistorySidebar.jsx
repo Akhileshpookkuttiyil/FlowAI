@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Clock, ChevronRight, MessageSquare, Loader2, CalendarDays, ArrowUpRight } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useUser } from '@clerk/clerk-react';
 import * as aiService from '../../services/ai.service';
 

@@ -8,7 +8,6 @@ export const askAI = asyncHandler(async (req, res) => {
   try {
     const stream = await askAIService(prompt, modelId);
 
-    // Set headers for Server-Sent Events (Streaming)
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
@@ -65,4 +64,3 @@ export const getAllResponses = asyncHandler(async (req, res) => {
     error: null,
   });
 });
-

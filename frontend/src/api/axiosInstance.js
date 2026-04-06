@@ -16,12 +16,7 @@ export const api = axios.create({
 
 let authInterceptor = null;
 
-/**
- * Attaches a dynamic bearer token to all outgoing Axios requests.
- * @param {Function} getToken - Clerk's getToken function.
- */
 export const setApiAuthInterceptor = (getToken) => {
-  // Prevent duplicate interceptor stacking
   if (authInterceptor !== null) {
     api.interceptors.request.eject(authInterceptor);
   }

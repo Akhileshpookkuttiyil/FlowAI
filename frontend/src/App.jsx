@@ -7,7 +7,6 @@ import { setApiAuthInterceptor } from "./api/axiosInstance";
 function App() {
   const { getToken, isLoaded } = useAuth();
 
-  // Synchronize Axios instance with Clerk auth state on mount
   useEffect(() => {
     setApiAuthInterceptor(getToken);
   }, [getToken]);

@@ -105,7 +105,6 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
       if (loadedModels.length === 0 && lastError) throw lastError;
       setModelsList(loadedModels);
       
-      // Auto-selection: only on the very first successful load if no model is selected
       if (loadedModels.length > 0 && !selectedModel && !hasInitialSelectionRef.current) {
         const hasFreeRouter = loadedModels.find(m => m.id === 'openrouter/free');
         if (hasFreeRouter) {
@@ -213,26 +212,22 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
           setResponse((prev) => prev + chunk);
         }, token);
       } catch (err) {
-        // If a specific model was selected and it failed, fallback to Auto Select
         if (initialModel) {
           const modelName = initialModel.split('/').pop() || initialModel;
-          console.warn(`Model ${initialModel} failed. Falling back to Auto Select.`);
           toast.error(`${modelName} is currently unavailable. Falling back to Auto Select...`, {
             icon: '🔄',
             duration: 4000
           });
           
           setFailedModels((prev) => new Set([...prev, initialModel]));
-          hasInitialSelectionRef.current = true; // Prevent fetchModels from resetting this back
-          setSelectedModel(''); // Update UI to show Auto Select
-          
-          // Reset response and retry with Auto Select (null)
+          hasInitialSelectionRef.current = true;
+          setSelectedModel('');
+
           setResponse('');
           await aiService.askAI(prompt, null, (chunk) => {
             setResponse((prev) => prev + chunk);
           }, token);
         } else {
-          // If it was already Auto Select and failed, throw to outer catch
           throw err;
         }
       }

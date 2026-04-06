@@ -5,7 +5,6 @@ const MODEL_CACHE_TTL = 3600000;
 let cachedModels = null;
 let lastFetchTime = 0;
 
-// Primary stable models to use as defaults/routers
 const DEFAULT_MODELS = [
   "openrouter/free"
 ];
@@ -36,7 +35,6 @@ export const getAvailableModels = async () => {
     const models = res.data.data
       .filter((m) => {
         const isFree = m.id.endsWith(":free") || m.pricing?.prompt === "0";
-        // Google Lyria yields 402; heavy Llama 3 models often yield 429
         const isReliable = !m.id.includes("lyria") && !m.id.includes("llama-3.1-405b") && !m.id.includes("llama-3.3-70b");
         return isFree && isReliable;
       })
@@ -49,7 +47,6 @@ export const getAvailableModels = async () => {
         if (a.id === "openrouter/free") return -1;
         if (b.id === "openrouter/free") return 1;
 
-        // Then prioritize Google Gemma 3 as they are stable
         if (a.id.includes("google/gemma-3") && !b.id.includes("google/gemma-3")) return -1;
         if (!a.id.includes("google/gemma-3") && b.id.includes("google/gemma-3")) return 1;
         
@@ -93,8 +90,7 @@ export const askAIService = async (prompt, modelId = null) => {
       return response.data;
     } catch (error) {
       lastAppError = error;
-      if (modelId) break; 
-      console.warn(`Model ${model} failed (${error.message}). Falling back...`);
+      if (modelId) break;
       await delay(1000);
     }
   }
