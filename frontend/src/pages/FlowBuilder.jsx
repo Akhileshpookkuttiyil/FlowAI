@@ -93,46 +93,70 @@ function FlowContent() {
     emailNode: EmailNode
   }), []);
 
-  const flow = useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initialEdges);
+  const {
+    models,
+    isModelsLoading,
+    selectedModel,
+    setSelectedModel,
+    failedModels,
+    fetchModels,
+    handleRunFlow,
+    handleSave,
+    setIsHistoryOpen,
+    isLoading,
+    canSave,
+    isSignedIn,
+    flowContainerRef,
+    addEmailNode,
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    onInit,
+    isMobile,
+    isHistoryOpen,
+    handleLoadRecord,
+  } = useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initialEdges);
 
   return (
     <div className="app-shell">
       <FlowToolbar
-        models={flow.models}
-        isModelsLoading={flow.isModelsLoading}
-        selectedModel={flow.selectedModel}
-        setSelectedModel={flow.setSelectedModel}
-        failedModels={flow.failedModels}
-        fetchModels={flow.fetchModels}
-        handleRunFlow={flow.handleRunFlow}
-        handleSave={flow.handleSave}
-        setIsHistoryOpen={flow.setIsHistoryOpen}
-        isLoading={flow.isLoading}
-        canSave={flow.canSave}
-        isSignedIn={flow.isSignedIn}
+        models={models}
+        isModelsLoading={isModelsLoading}
+        selectedModel={selectedModel}
+        setSelectedModel={setSelectedModel}
+        failedModels={failedModels}
+        fetchModels={fetchModels}
+        handleRunFlow={handleRunFlow}
+        handleSave={handleSave}
+        setIsHistoryOpen={setIsHistoryOpen}
+        isLoading={isLoading}
+        canSave={canSave}
+        isSignedIn={isSignedIn}
       />
 
-      <main className="app-main" ref={flow.flowContainerRef}>
+      <main className="app-main" ref={flowContainerRef}>
         <FlowSidebar 
-          isSignedIn={flow.isSignedIn} 
-          onAddEmailNode={flow.addEmailNode} 
+          isSignedIn={isSignedIn} 
+          onAddEmailNode={addEmailNode} 
         />
 
         <FlowCanvas
-          nodes={flow.nodes}
-          edges={flow.edges}
-          onNodesChange={flow.onNodesChange}
-          onEdgesChange={flow.onEdgesChange}
-          onConnect={flow.onConnect}
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
           nodeTypes={nodeTypes}
-          onInit={flow.onInit}
-          isMobile={flow.isMobile}
+          onInit={onInit}
+          isMobile={isMobile}
         />
 
         <HistorySidebar 
-          isOpen={flow.isHistoryOpen} 
-          onClose={() => flow.setIsHistoryOpen(false)}
-          onLoadRecord={flow.handleLoadRecord}
+          isOpen={isHistoryOpen} 
+          onClose={() => setIsHistoryOpen(false)}
+          onLoadRecord={handleLoadRecord}
         />
       </main>
     </div>

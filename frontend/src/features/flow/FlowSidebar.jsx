@@ -1,19 +1,5 @@
 import React from 'react';
 import { Mail } from 'lucide-react';
-import { motion } from 'framer-motion';
-
-const SidebarButton = ({ icon: Icon, onClick, title, color }) => (
-  <motion.button
-    whileHover={{ scale: 1.1, x: 4 }}
-    whileTap={{ scale: 0.9 }}
-    className="sidebar-button"
-    onClick={onClick}
-    title={title}
-    style={{ '--btn-color': color }}
-  >
-    <Icon size={22} strokeWidth={2.5} />
-  </motion.button>
-);
 
 export default function FlowSidebar({ isSignedIn, onAddEmailNode }) {
   if (!isSignedIn) return null;
@@ -21,12 +7,14 @@ export default function FlowSidebar({ isSignedIn, onAddEmailNode }) {
   return (
     <aside className="app-sidebar">
       <div className="sidebar-section">
-        <SidebarButton 
-          icon={Mail} 
-          onClick={onAddEmailNode} 
-          title="Add Email Action" 
-          color="#3b82f6"
-        />
+        <button
+          className="sidebar-button"
+          onClick={onAddEmailNode}
+          title="Add Email Action"
+          style={{ '--btn-color': '#3b82f6' }}
+        >
+          <Mail size={22} strokeWidth={2.5} />
+        </button>
       </div>
     </aside>
   );

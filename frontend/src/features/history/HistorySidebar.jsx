@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Clock, ChevronRight, MessageSquare, Loader2, CalendarDays, ArrowUpRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useUser } from '@clerk/clerk-react';
 import * as aiService from '../../services/ai.service';
 
 export default function HistorySidebar({ isOpen, onClose, onLoadRecord }) {
+  const MotionDiv = motion.div;
   const { isSignedIn } = useUser();
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     if (!isSignedIn) return;
     setIsLoading(true);
     try {
@@ -20,11 +22,11 @@ export default function HistorySidebar({ isOpen, onClose, onLoadRecord }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isSignedIn]);
 
   useEffect(() => {
     if (isOpen) fetchHistory();
-  }, [isOpen, isSignedIn]);
+  }, [fetchHistory, isOpen]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -40,14 +42,14 @@ export default function HistorySidebar({ isOpen, onClose, onLoadRecord }) {
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="history-overlay"
           />
-          <motion.div
+          <MotionDiv
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -102,7 +104,7 @@ export default function HistorySidebar({ isOpen, onClose, onLoadRecord }) {
                 </button>
               ))}
             </div>
-          </motion.div>
+          </MotionDiv>
         </>
       )}
     </AnimatePresence>

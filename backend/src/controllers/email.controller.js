@@ -10,18 +10,20 @@ export const sendEmail = asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, error: "Missing recipient, subject, or message" });
   }
 
-  // Strategy 1: High-Speed API (Recommended for Vercel < 2s response)
   if (config.brevoApiKey) {
     try {
-      await brevoEmailAction({ to, subject, message });
-      return res.status(200).json({ success: true, message: "Sent via High-Speed API" });
+      const brevoResult = await brevoEmailAction({ to, subject, message });
+      return res.status(200).json({
+        success: true,
+        provider: "brevo",
+        message: "Email accepted by Brevo for delivery.",
+        messageId: brevoResult?.messageId || brevoResult?.messageIds?.[0] || null,
+      });
     } catch (error) {
       console.error("API Send Error:", error.message);
-      // Fall through to SMTP if API fails
     }
   }
 
-  // Strategy 2: Optimized Gmail SMTP (Fallback, slower)
   if (!config.gmailUser || !config.gmailAppPassword) {
     return res.status(500).json({ success: false, error: "SMTP credentials missing" });
   }
@@ -29,9 +31,8 @@ export const sendEmail = asyncHandler(async (req, res) => {
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
-    secure: true, // Use SSL/TLS
+    secure: true,
     auth: { user: config.gmailUser, pass: config.gmailAppPassword },
-    // Optimizations for Serverless: No pooling, fast handshake
     pool: false,
     connectionTimeout: 5000, 
     greetingTimeout: 5000,
@@ -45,16 +46,19 @@ export const sendEmail = asyncHandler(async (req, res) => {
     text: message,
   };
 
-  /**
-   * FASTER RESPONSE ARCHITECTURE: 
-   * On Vercel, we respond immediately and trigger the email in background.
-   * Note: This carries a small risk of process termination before completion,
-   * but is necessary for slow SMTP exchanges on Hobby plan (10s limit).
-   */
-  transporter.sendMail(mailOptions).catch(err => console.error("SMTP BG Error:", err));
-
-  res.status(200).json({
-    success: true,
-    message: "Email signaled for dispatch. (Responded fast to prevent Vercel timeout)",
-  });
+  try {
+    const smtpResult = await transporter.sendMail(mailOptions);
+    return res.status(200).json({
+      success: true,
+      provider: "gmail-smtp",
+      message: "Email accepted by Gmail SMTP for delivery.",
+      messageId: smtpResult?.messageId || null,
+    });
+  } catch (error) {
+    console.error("SMTP Send Error:", error);
+    return res.status(502).json({
+      success: false,
+      error: error.message || "Failed to send email via Gmail SMTP.",
+    });
+  }
 });

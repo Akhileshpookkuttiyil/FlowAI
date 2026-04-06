@@ -1,16 +1,11 @@
 import axios from "axios";
 import { config } from "../config/env.js";
-
-/**
- * Email Service using Brevo (formerly Sendinblue) API.
- * Why Brevo? 
- * 1. Fast REST API (avoids SMTP handshakes causing Vercel timeouts)
- * 2. Free tier (300/day)
- * 3. Allows sending from verified Gmail address without a paid domain.
- */
 export const sendEmail = async ({ to, subject, message }) => {
   if (!config.brevoApiKey) {
     throw new Error("BREVO_API_KEY is not configured.");
+  }
+  if (!config.gmailUser) {
+    throw new Error("GMAIL_USER is required as the verified Brevo sender email.");
   }
 
   const data = {

@@ -46,8 +46,8 @@ export const askAI = async (prompt, modelId, onChunk, token) => {
           const json = JSON.parse(trimmedLine.substring(6));
           const delta = json.choices?.[0]?.delta?.content || '';
           if (delta) onChunk(delta);
-        } catch (e) {
-          // Incomplete fragment
+        } catch {
+          // Ignore incomplete SSE fragments until the next chunk arrives.
         }
       }
     }

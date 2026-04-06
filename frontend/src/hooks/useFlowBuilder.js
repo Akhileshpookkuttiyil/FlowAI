@@ -33,8 +33,6 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
   const shouldRetryModelsRef = useRef(true);
   const hasInitialSelectionRef = useRef(false);
   const reactFlowInstanceRef = useRef(null);
-  const pendingViewportFrameRef = useRef(null);
-  const lastMobileViewportKeyRef = useRef('');
 
   const isMobile = viewportSize.width < MOBILE_BREAKPOINT;
 
@@ -164,7 +162,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     setEmailData(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  const handleSendEmail = async () => {
+  const handleSendEmail = useCallback(async () => {
     if (!emailData.to || !response) {
       toast.error('Recipient and message content are required!');
       return;
@@ -172,38 +170,18 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
 
     setIsEmailSending(true);
     try {
-      await emailService.sendEmail({
+      const emailResult = await emailService.sendEmail({
         to: emailData.to,
         subject: emailData.subject,
         message: response
       });
-      toast.success('Email sent successfully!');
+      toast.success(emailResult?.message || 'Email sent successfully!');
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Failed to send email.'));
     } finally {
       setIsEmailSending(false);
     }
-  };
-
-  const scheduleMobileFitView = useCallback((instance, viewportKey) => {
-    if (lastMobileViewportKeyRef.current === viewportKey) return;
-    lastMobileViewportKeyRef.current = viewportKey;
-    if (pendingViewportFrameRef.current) cancelAnimationFrame(pendingViewportFrameRef.current);
-    pendingViewportFrameRef.current = requestAnimationFrame(() => {
-      pendingViewportFrameRef.current = requestAnimationFrame(() => {
-        if (reactFlowInstanceRef.current !== instance) {
-          pendingViewportFrameRef.current = null;
-          return;
-        }
-        try {
-          instance.fitView({ padding: 0.25, duration: 300 });
-        } catch (error) {
-          console.error('fitView failed', error);
-        }
-        pendingViewportFrameRef.current = null;
-      });
-    });
-  }, []);
+  }, [emailData.to, emailData.subject, response]);
 
   const onInit = useCallback((instance) => { reactFlowInstanceRef.current = instance; }, []);
 
@@ -403,4 +381,3 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     canSave: Boolean(isSignedIn && response && !isLoading && !error)
   };
 }
-

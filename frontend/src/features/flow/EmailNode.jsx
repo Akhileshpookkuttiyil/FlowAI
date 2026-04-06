@@ -17,8 +17,6 @@ const EmailNode = memo(({ data, selected }) => {
     if (data.onSend) data.onSend();
   };
 
-  const isComplete = data.isConnected && data.to && data.value && data.subject;
-
   return (
     <MotionDiv
       initial={{ opacity: 0, scale: 0.97 }}
