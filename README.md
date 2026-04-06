@@ -16,12 +16,14 @@ Developing AI-integrated applications often involves complex UI state management
 - **User Authentication**: Robust Login/Signup powered by Clerk, ensuring user data privacy.
 - **Flexible Guest Mode**: Test and run flows without requiring an account (Saving and History are protected).
 - **Intuitive UI**: A clean, Vercel-inspired professional interface enhanced with responsive Lucide iconography.
-- **Dynamic AI Nodes**: Custom React Flow nodes for text input and AI output.
+- **Dynamic Flow Nodes**: Custom React Flow nodes for text input, AI output, and email dispatch.
 - **SSE Streaming**: Real-time word-by-word AI response generation for lower perceived latency.
 - **Model Selector**: A dropdown that dynamically fetches available **Free AI Models** from OpenRouter.
 - **Availability Tracking**: Real-time indication and disabling of unavailable models.
+- **Automatic Model Fallback**: Falls back to auto-selection when a chosen model becomes unavailable.
 - **In-Node Loading**: Integrated CSS loaders and "Skeleton" states within response nodes.
-- **History Management**: Sidebar for viewing, searching, and reloading past prompt-response pairs.
+- **Email Dispatch**: Authenticated users can attach an email node and send generated responses through Brevo.
+- **History Management**: Sidebar for viewing and reloading past prompt-response pairs.
 - **MongoDB Persistence**: One-click saving of successful interactions.
 - **Fully Responsive**: Mobile-optimized stack layouts for the flow builder and header.
 
@@ -43,12 +45,16 @@ Developing AI-integrated applications often involves complex UI state management
 - **Express.js**: Minimal and flexible web application framework.
 - **Clerk SDK Node**: Secure JWT verification and auth middleware processing.
 - **Mongoose**: ODM for MongoDB to handle structured data schema.
+- **Zod**: Runtime request validation for AI and email endpoints.
 
 ### Database
 - **MongoDB Atlas**: Fully managed cloud database for data persistence.
 
 ### AI Integration
 - **OpenRouter API**: Aggregator for multiple AI providers (optimized for free-tier models).
+
+### Email Integration
+- **Brevo API**: Transactional email delivery with sender/API preflight validation.
 
 ---
 
@@ -76,6 +82,8 @@ FlowAI/
     └── vite.config.js    # Vite environment settings
 ```
 
+Additional backend folders in the current codebase include `src/validators/` for Zod request schemas and `src/services/` for both OpenRouter and Brevo integrations.
+
 ---
 
 ## 🚀 Installation & Setup
@@ -83,9 +91,10 @@ FlowAI/
 ### 1. Prerequisites
 - **Node.js** (v18 or higher)
 - **npm** or **yarn**
-- **MongoDB Atlas Cluster** (or local MongoDB instance)
+- **MongoDB Atlas Cluster** (or local MongoDB instance) for Save/History features
 - **OpenRouter API Key**
 - **Clerk Account** (for Publishable and Secret Keys)
+- **Brevo Account** with a verified sender email
 
 ### 2. Backend Setup
 ```bash
@@ -94,6 +103,7 @@ npm install
 ```
 Create a `.env` file in the `backend/` directory:
 ```env
+NODE_ENV=development
 PORT=5000
 MONGO_URI=your_mongodb_atlas_connection_string
 OPENROUTER_API_KEY=your_openrouter_api_key
@@ -102,6 +112,9 @@ OPENROUTER_SITE_URL=http://localhost:5173
 OPENROUTER_APP_NAME=FlowAI Builder
 CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 CLERK_SECRET_KEY=your_clerk_secret_key
+BREVO_API_KEY=your_brevo_api_key
+BREVO_SENDER_EMAIL=your_verified_brevo_sender_email
+BREVO_SENDER_NAME=FlowAI Builder
 ```
 
 ### 3. Frontend Setup
@@ -145,6 +158,7 @@ The application will be live at `http://localhost:5173`.
 | **GET** | `/api/history` | Retrieves all saved prompt-response interactions. | **Yes** |
 | **POST** | `/api/ask-ai` | Executes a streaming prompt against the selected AI model. | No |
 | **POST** | `/api/save` | Saves the prompt and AI response to the database tied to user. | **Yes** |
+| **POST** | `/api/send-email` | Validates recipient, subject, and message, then sends the AI response through Brevo. | **Yes** |
 
 ---
 
@@ -154,7 +168,8 @@ The application will be live at `http://localhost:5173`.
 3. **Input Prompt**: Type your question or instruction in the **Input Prompt** node on the left.
 4. **Execution**: Click **Run Flow**. A spinner will appear in the **AI Response** node header while processing.
 5. **Result**: The AI output will sequentially stream into the right-hand node.
-6. **Save**: Click **Save** to persist the result to MongoDB under your profile. A toast notification will confirm success.
+6. **Email (Optional)**: Sign in, add the **Email Dispatch** node from the sidebar, connect it to the output node, then send the generated response through Brevo.
+7. **Save**: Click **Save** to persist the result to MongoDB under your profile. A toast notification will confirm success.
 
 ---
 
@@ -177,8 +192,12 @@ The application will be live at `http://localhost:5173`.
 1. Import the `frontend/` directory as the Vercel project root.
 2. Set the build command to `npm run build`.
 3. Set the output directory to `dist`.
-4. Add `REACT_APP_API_URL=https://your-render-backend.onrender.com` in Vercel Environment Variables.
-5. Redeploy after saving the environment variable.
+4. Add the following Vercel environment variables:
+```env
+VITE_API_URL=https://your-render-backend.onrender.com
+VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+```
+5. Redeploy after saving the environment variables.
 
 ### Backend on Render
 1. Create a new Web Service pointing at the `backend/` directory.
@@ -192,6 +211,9 @@ OPENROUTER_SITE_URL=https://your-vercel-frontend.vercel.app
 OPENROUTER_APP_NAME=FlowAI Builder
 CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 CLERK_SECRET_KEY=your_clerk_secret_key
+BREVO_API_KEY=your_brevo_api_key
+BREVO_SENDER_EMAIL=your_verified_brevo_sender_email
+BREVO_SENDER_NAME=FlowAI Builder
 PORT=10000
 ```
 4. After Vercel gives you the frontend production domain, update `FRONTEND_URL` on Render so CORS allows the deployed app.
