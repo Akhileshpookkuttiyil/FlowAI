@@ -4,12 +4,12 @@ export const sendEmail = async ({ to, subject, message }) => {
   if (!config.brevoApiKey) {
     throw new Error("BREVO_API_KEY is not configured.");
   }
-  if (!config.gmailUser) {
-    throw new Error("GMAIL_USER is required as the verified Brevo sender email.");
+  if (!config.brevoSenderEmail) {
+    throw new Error("BREVO_SENDER_EMAIL is not configured.");
   }
 
   const data = {
-    sender: { name: "FlowAI Builder", email: config.gmailUser },
+    sender: { name: config.brevoSenderName, email: config.brevoSenderEmail },
     to: [{ email: to }],
     subject: subject,
     textContent: message,

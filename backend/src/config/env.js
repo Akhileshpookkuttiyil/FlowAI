@@ -36,7 +36,11 @@ export const config = {
   corsOrigins: [...new Set([...localOrigins, ...configuredOrigins])],
   openRouterSiteUrl: normalizedOpenRouterSiteUrl || configuredOrigins[0] || "",
   openRouterAppName: process.env.OPENROUTER_APP_NAME || "FlowAI Builder",
+  emailProvider: (process.env.EMAIL_PROVIDER || "auto").trim().toLowerCase(),
+  allowSmtpFallback: process.env.ALLOW_SMTP_FALLBACK === "true",
   gmailUser: process.env.GMAIL_USER,
   gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
   brevoApiKey: process.env.BREVO_API_KEY,
+  brevoSenderEmail: process.env.BREVO_SENDER_EMAIL || process.env.GMAIL_USER || "",
+  brevoSenderName: process.env.BREVO_SENDER_NAME || "FlowAI Builder",
 };

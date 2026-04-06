@@ -5,12 +5,18 @@ import nodemailer from "nodemailer";
 
 export const sendEmail = asyncHandler(async (req, res) => {
   const { to, subject, message } = req.body;
+  const canUseGmailSmtp = Boolean(config.gmailUser && config.gmailAppPassword);
+  const wantsBrevo = config.emailProvider !== "gmail";
+  const wantsGmailSmtp = config.emailProvider === "gmail";
+  const canFallbackToGmailSmtp =
+    canUseGmailSmtp &&
+    (config.nodeEnv !== "production" || config.allowSmtpFallback || wantsGmailSmtp);
 
   if (!to || !subject || !message) {
     return res.status(400).json({ success: false, error: "Missing recipient, subject, or message" });
   }
 
-  if (config.brevoApiKey) {
+  if (wantsBrevo && config.brevoApiKey) {
     try {
       const brevoResult = await brevoEmailAction({ to, subject, message });
       return res.status(200).json({
@@ -20,12 +26,33 @@ export const sendEmail = asyncHandler(async (req, res) => {
         messageId: brevoResult?.messageId || brevoResult?.messageIds?.[0] || null,
       });
     } catch (error) {
-      console.error("API Send Error:", error.message);
+      console.error("Brevo email failed:", error.message);
+
+      if (!canFallbackToGmailSmtp) {
+        return res.status(502).json({
+          success: false,
+          error:
+            "Brevo email failed. Set a valid BREVO_API_KEY and verified BREVO_SENDER_EMAIL in production.",
+        });
+      }
     }
   }
 
-  if (!config.gmailUser || !config.gmailAppPassword) {
-    return res.status(500).json({ success: false, error: "SMTP credentials missing" });
+  if (!canUseGmailSmtp) {
+    return res.status(500).json({
+      success: false,
+      error: wantsGmailSmtp
+        ? "Gmail SMTP credentials are missing."
+        : "No working email provider is configured.",
+    });
+  }
+
+  if (!canFallbackToGmailSmtp) {
+    return res.status(502).json({
+      success: false,
+      error:
+        "Gmail SMTP fallback is disabled in production. Configure Brevo or set ALLOW_SMTP_FALLBACK=true explicitly.",
+    });
   }
 
   const transporter = nodemailer.createTransport({
@@ -58,7 +85,9 @@ export const sendEmail = asyncHandler(async (req, res) => {
     console.error("SMTP Send Error:", error);
     return res.status(502).json({
       success: false,
-      error: error.message || "Failed to send email via Gmail SMTP.",
+      error:
+        error.message ||
+        "Failed to send email via Gmail SMTP. Use Brevo in production for reliable delivery.",
     });
   }
 });
