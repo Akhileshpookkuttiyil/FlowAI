@@ -17,7 +17,7 @@ export const validateRequest = (schema) => (req, res, next) => {
   } catch (error) {
     res.status(400).json({
       success: false,
-      error: error.errors?.[0]?.message || 'Validation failed',
+      error: error.issues?.[0]?.message || error.errors?.[0]?.message || 'Validation failed',
     });
   }
 };
