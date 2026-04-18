@@ -15,10 +15,10 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
   const { isSignedIn } = useUser();
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
+  const [currentResponseId, setCurrentResponseId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  const [emailData, setEmailData] = useState({ to: '', subject: 'AI Response from FlowAI' });
   const [isEmailSending, setIsEmailSending] = useState(false);
 
   const [models, setModelsList] = useState([]);
@@ -153,34 +153,34 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     if (error) setError(null);
   }, [error]);
 
-  const handleEmailDataChange = useCallback((field, value) => {
-    if (field === 'value') {
-      setResponse(value);
-      return;
-    }
-    setEmailData(prev => ({ ...prev, [field]: value }));
-  }, []);
-
   const handleSendEmail = useCallback(async () => {
-    if (!emailData.to || !response) {
-      toast.error('Recipient and message content are required!');
+    if (!response) {
+      toast.error('No response available to send!');
       return;
     }
 
     setIsEmailSending(true);
     try {
-      const emailResult = await emailService.sendEmail({
-        to: emailData.to,
-        subject: emailData.subject,
-        message: response
-      });
-      toast.success(emailResult?.message || 'Email sent successfully!');
+      let idToSend = currentResponseId;
+      if (!idToSend) {
+        toast.loading("Saving response first...");
+        const saved = await aiService.saveResponse(prompt, response);
+        idToSend = saved.response._id;
+        setCurrentResponseId(idToSend);
+        toast.dismiss();
+      }
+
+      if (!idToSend) throw new Error("Could not fetch response ID.");
+
+      const emailResult = await emailService.sendEmail({ responseId: idToSend });
+      toast.success(emailResult?.message || 'Email sent to your registered email!');
     } catch (err) {
+      toast.dismiss();
       toast.error(getApiErrorMessage(err, 'Failed to send email.'));
     } finally {
       setIsEmailSending(false);
     }
-  }, [emailData.to, emailData.subject, response]);
+  }, [response, prompt, currentResponseId]);
 
   const onInit = useCallback((instance) => { reactFlowInstanceRef.current = instance; }, []);
 
@@ -200,6 +200,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
     
     setIsLoading(true);
     setResponse('');
+    setCurrentResponseId(null);
     setError(null);
 
     const initialModel = selectedModel || null;
@@ -253,16 +254,18 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
       return;
     }
     try {
-      await aiService.saveResponse(prompt, response);
+      const saved = await aiService.saveResponse(prompt, response);
+      setCurrentResponseId(saved.response._id);
       toast.success('Saved to History!');
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Failed to save to database.'));
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to save to database.'));
     }
   };
 
   const handleLoadRecord = useCallback((record) => {
     setPrompt(record.prompt || '');
     setResponse(record.response || '');
+    setCurrentResponseId(record._id || null);
     setError(null);
     toast.success('Record loaded from history!');
   }, []);
@@ -324,9 +327,6 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
             data: {
               ...node.data,
               value: isEmailConnected ? response : '',
-              to: emailData.to,
-              subject: emailData.subject,
-              onEmailDataChange: handleEmailDataChange,
               onSend: handleSendEmail,
               isSending: isEmailSending,
               isSignedIn,
@@ -342,7 +342,7 @@ export function useFlowBuilder(getViewportSize, getResponsiveNodeLayout, initial
         };
       });
     },
-    [nodes, edges, prompt, response, isLoading, error, emailData, isEmailSending, isSignedIn, handlePromptChange, handleEmailDataChange, handleSendEmail, isMobile, responsiveLayout]
+    [nodes, edges, prompt, response, isLoading, error, isEmailSending, isSignedIn, handlePromptChange, handleSendEmail, isMobile, responsiveLayout]
   );
 
   return {

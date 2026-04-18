@@ -52,48 +52,10 @@ const EmailNode = memo(({ data, selected }) => {
       </div>
 
       <div className="flow-node__content">
-        <div className="flow-node__field-group">
-          <div className="flow-node__field-header">
-            <User size={12} className="flow-node__field-icon" />
-            <label className="flow-node__label">Recipient</label>
-          </div>
-          <input
-            type="email"
-            className="nodrag nowheel flow-node__input-premium"
-            placeholder="recipient@example.com"
-            value={data.to || ''}
-            onChange={(e) => data.onEmailDataChange?.('to', e.target.value)}
-            disabled={data.isSending || !data.isConnected}
-          />
-        </div>
-
-        <div className="flow-node__field-group">
-          <div className="flow-node__field-header">
-            <Text cursor="pointer" size={13} strokeWidth={2.5} className="flow-node__field-icon" />
-            <label className="flow-node__label">Subject</label>
-          </div>
-          <input
-            type="text"
-            className="nodrag nowheel flow-node__input-premium"
-            placeholder="Subject Line"
-            value={data.subject || ''}
-            onChange={(e) => data.onEmailDataChange?.('subject', e.target.value)}
-            disabled={data.isSending || !data.isConnected}
-          />
-        </div>
-
-        <div className="flow-node__field-group">
-          <div className="flow-node__field-header">
-            <MessageSquareText size={12} className="flow-node__field-icon" />
-            <label className="flow-node__label">Message</label>
-          </div>
-          <textarea
-            className="nodrag nowheel flow-node__textarea-premium"
-            placeholder={data.isConnected ? "Awaiting Flow Content..." : "Connect Source Node to Compose"}
-            value={data.value || ''}
-            onChange={(e) => data.onEmailDataChange?.('value', e.target.value)}
-            disabled={data.isSending || !data.isConnected}
-          />
+        <div className="flow-node__field-group" style={{ padding: '8px 12px', background: 'var(--color-bg-subtle, #f1f5f9)', borderRadius: '8px', marginBottom: '16px', maxHeight: '120px', overflowY: 'auto' }}>
+          <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted, #64748b)', lineHeight: '1.4', whiteSpace: 'pre-wrap' }}>
+            {data.isConnected ? (data.value || "Awaiting Flow Content...") : "Connect Source Node to view content"}
+          </p>
         </div>
 
         <div className="flow-node__actions">
@@ -103,7 +65,7 @@ const EmailNode = memo(({ data, selected }) => {
             disabled={data.isSending || !data.isConnected || !data.isSignedIn}
           >
             {data.isSending ? <Loader2 size={16} className="spin" /> : <Send size={16} />}
-            <span>{data.isSending ? 'Sending...' : 'Dispatch Email'}</span>
+            <span>{data.isSending ? 'Sending...' : 'Send to my email'}</span>
           </button>
         </div>
         
